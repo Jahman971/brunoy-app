@@ -346,7 +346,7 @@ select.input-field option{background:var(--s2)}
 ═══════════════════════════════════════════════════════════ -->
 <div id="screen-coach" class="screen">
   <div class="app-header">
-    <div><div class="header-club">Coach · ES Brunoy HB</div><div class="header-name">Dashboard</div></div>
+    <div><div class="header-club">Coach · ES Brunoy HB</div><div class="header-name" id="coach-header-name">Dashboard</div></div>
     <button class="btn btn-secondary btn-sm" style="width:auto;padding:8px 14px;font-size:11px" onclick="logoutCoach()">Déco.</button>
   </div>
   <div class="coach-tabs">
@@ -374,6 +374,19 @@ select.input-field option{background:var(--s2)}
 <div class="overlay" id="modal-coach-login">
   <div class="modal">
     <div class="modal-title">Accès Coach<button class="modal-close" onclick="closeModal('modal-coach-login')">✕</button></div>
+    <div class="input-label" style="margin-bottom:8px">Qui es-tu ?</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button id="coach-pick-lohan" class="btn btn-secondary btn-sm" style="flex:1;padding:12px 4px" onclick="pickCoach('lohan')">
+        <div style="font-size:20px">👑</div>
+        <div style="font-family:var(--fnt-head);font-size:14px;font-weight:900;margin-top:4px">LOHAN</div>
+        <div style="font-size:10px;color:var(--gray)">Coach Principal</div>
+      </button>
+      <button id="coach-pick-jimmy" class="btn btn-secondary btn-sm" style="flex:1;padding:12px 4px" onclick="pickCoach('jimmy')">
+        <div style="font-size:20px">🎯</div>
+        <div style="font-family:var(--fnt-head);font-size:14px;font-weight:900;margin-top:4px">JIMMY</div>
+        <div style="font-size:10px;color:var(--gray)">Coach Adjoint</div>
+      </button>
+    </div>
     <div class="input-group">
       <label class="input-label">Mot de passe</label>
       <input class="input-field" id="coach-pwd" type="password" placeholder="••••••" onkeydown="if(event.key==='Enter')loginCoach()">
@@ -841,6 +854,8 @@ let obData = {};
 let selectedRPE = 0;
 let pendingValidation = null;
 let coachPwd = null;
+let currentCoach = null; // {id, nom, role, emoji}
+let selectedCoachId = 'lohan'; // default
 
 // ══════════════════════════════════════════════════
 // UI HELPERS
@@ -1526,16 +1541,35 @@ async function marquerManquee(date,weekIdx,sessionIdx){
 // ══════════════════════════════════════════════════
 // COACH
 // ══════════════════════════════════════════════════
+const COACHES = {
+  lohan: {id:'lohan', nom:'Lohan', role:'Coach Principal', emoji:'👑', defPwd:'LOHAN'},
+  jimmy: {id:'jimmy', nom:'Jimmy', role:'Coach Adjoint',   emoji:'🎯', defPwd:'JIMMY'},
+};
+
+function pickCoach(id){
+  selectedCoachId = id;
+  ['lohan','jimmy'].forEach(c=>{
+    g('coach-pick-'+c)?.classList.toggle('btn-primary', c===id);
+    g('coach-pick-'+c)?.classList.toggle('btn-secondary', c!==id);
+  });
+  g('coach-pwd').focus();
+}
+
 async function loginCoach(){
-  const pwd=g('coach-pwd').value.trim().toUpperCase();
-  const stored=await sbGetMeta('coach_pwd',COACH_DEFAULT);
-  if(pwd!==stored&&pwd!==COACH_DEFAULT){showToast('Mot de passe incorrect','error');return;}
+  const coach = COACHES[selectedCoachId];
+  if(!coach){showToast('Choisis un coach','error');return;}
+  const pwd = g('coach-pwd').value.trim().toUpperCase();
+  const stored = await sbGetMeta('coach_pwd_'+coach.id, coach.defPwd);
+  if(pwd !== stored && pwd !== coach.defPwd){showToast('Mot de passe incorrect','error');return;}
+  currentCoach = coach;
+  coachPwd = pwd;
   closeModal('modal-coach-login');
-  coachPwd=pwd;
+  g('coach-pwd').value = '';
   showScreen('coach');
+  if(g('coach-header-name')) g('coach-header-name').textContent = coach.emoji+' '+coach.nom+' · '+coach.role;
   coachTab('joueurs');
 }
-function logoutCoach(){coachPwd=null;showScreen('landing');}
+function logoutCoach(){coachPwd=null;currentCoach=null;selectedCoachId='lohan';showScreen('landing');}
 
 function coachTab(tab){
   ['joueurs','semaine','stats','annonce'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
@@ -1640,6 +1674,13 @@ async function renderCoachStats(){
 async function renderCoachAnnonce(){
   const annonce=await sbGetMeta('annonce',null);
   let h=`<button class="btn btn-primary" style="margin-bottom:14px" onclick="openModal('modal-annonce')">📢 Nouveau message</button>`;
+  // Changer mot de passe
+  if(currentCoach){
+    h+=`<div class="card" style="margin-top:6px"><div class="card-title">🔑 Mot de passe — ${currentCoach.emoji} ${currentCoach.nom}</div>
+    <div class="input-group" style="margin-bottom:8px"><label class="input-label">Nouveau mot de passe</label>
+    <input class="input-field" id="new-coach-pwd" placeholder="MIN. 4 CARACTÈRES" style="text-transform:uppercase;letter-spacing:2px" maxlength="20" autocapitalize="characters"></div>
+    <button class="btn btn-ghost btn-sm" onclick="changeCoachPwd()">Changer mon mot de passe</button></div>`;
+  }
   if(annonce?.text){
     h+=`<div class="card"><div class="card-title">Message actuel</div>
     <div class="annonce-card" style="margin:0"><div class="annonce-from">📢 Message du Coach</div><div class="annonce-text">${annonce.text}</div><div style="font-size:10px;color:var(--dim);margin-top:6px">${formatDate(annonce.date)}</div></div>
@@ -1776,7 +1817,7 @@ async function coachManagePlayer(code){
     h+=`<div class="card-title" style="margin:12px 0 6px">Historique</div>`;
     recent.forEach(s=>{
       h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--s3);font-size:12px">
-        <span>✅</span><span style="flex:1;color:var(--light)">Sem.${(s.weekIdx??0)+1} · S${(s.sessionIdx??0)+1}</span>
+        <span>✅</span><span style="flex:1;color:var(--light)">Sem.${(s.weekIdx??0)+1} · S${(s.sessionIdx??0)+1}${s.byCoach&&s.byCoach!==true?' <span style="color:var(--blue);font-size:10px">('+s.byCoach+')</span>':''}</span>
         <span style="color:var(--gray)">RPE ${s.rpe||'—'}</span>
         <span style="color:var(--dim)">${s.date||'—'}</span>
         <button onclick="coachDelSess('${code}',${s.ts})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑️</button>
@@ -1866,13 +1907,22 @@ async function confirmCoachAddSess(){
   const j=await sbGetJoueur(code);if(!j){showToast('Joueur introuvable','error');return;}
   if(!j.seances_validees)j.seances_validees=[];
   j.seances_validees=j.seances_validees.filter(s=>!(s.weekIdx===weekIdx&&s.sessionIdx===sessionIdx));
-  j.seances_validees.push({date:new Date().toISOString().split('T')[0],weekIdx,sessionIdx,rpe:_coachAddRPE,missed:false,ts:Date.now(),byCoach:true});
+  j.seances_validees.push({date:new Date().toISOString().split('T')[0],weekIdx,sessionIdx,rpe:_coachAddRPE,missed:false,ts:Date.now(),byCoach:currentCoach?.nom||'Coach'});
   const ok=await sbSaveJoueur(j);if(!ok)return;
   closeModal('modal-coach-add-sess');
   showToast(j.prenom+' — séance validée ✅','success');
   checkBadges(j);
   const activeTab=document.querySelector('.ctab.active')?.id?.replace('ctab-','');
   if(activeTab)coachTab(activeTab);
+}
+
+// ── Change coach password ──
+async function changeCoachPwd(){
+  const newPwd = g('new-coach-pwd')?.value.trim().toUpperCase();
+  if(!newPwd||newPwd.length<4){showToast('Min. 4 caractères','error');return;}
+  await sbSaveMeta('coach_pwd_'+currentCoach.id, newPwd);
+  showToast('Mot de passe changé : '+newPwd+' 🔑','success');
+  if(g('new-coach-pwd')) g('new-coach-pwd').value='';
 }
 
 // ══════════════════════════════════════════════════
