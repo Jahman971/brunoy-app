@@ -554,25 +554,25 @@ const COULEURS_AV = ['#C81B1B','#D97706','#2563EB','#16A34A','#7C3AED','#DB2777'
 // Phase 3 collective schedule (from planning image)
 const PHASE3_SCHEDULE = [
   // PHASE 3 — Reprise Collective Volume (17-30 août)
-  {date:'2026-08-17',label:'17 Août · Lun',type:'cohesion',titre:'Séance Cohésion — Course d\'orientation + Dé Renfo',lieu:'Gymnase',objectif:'Remise en route ludique — par binômes',note:'Dé: 1=10 pompes · 2=15 squats · 3=30s gainage · 4=10 fentes/jambe · 5=10 burpees · 6=20 genoux+10 sauts'},
-  {date:'2026-08-19',label:'19 Août · Mer',type:'exterieur',titre:'Vitesse — Travail de pied & Appuis',lieu:'Extérieur / Piste',objectif:'Fentes explosives, changements direction + PPP Guégan',note:''},
+  {date:'2026-08-17',label:'17 Août · Lun',type:'cohesion',titre:'Séance Cohésion — Course d\'orientation + Dé Renfo',lieu:'Extérieur',objectif:'Remise en route ludique — par binômes',note:'Dé: 1=10 pompes · 2=15 squats · 3=30s gainage · 4=10 fentes/jambe · 5=10 burpees · 6=20 genoux+10 sauts'},
+  {date:'2026-08-19',label:'19 Août · Mer',type:'exterieur',titre:'Vitesse — Travail de pied & Appuis',lieu:'Gymnase',objectif:'Fentes explosives, changements direction + PPP Guégan',note:''},
   {date:'2026-08-21',label:'21 Août · Ven',type:'collective',titre:'PPP Guégan + Pliométrie basse + Explosivité',lieu:'Gymnase',objectif:'Introduction pliométrie + PPP',note:''},
   {date:'2026-08-22',label:'22 Août · Sam',type:'cohesion',titre:'Journée ensemble — PPP + Vitesse + Handball',lieu:'Gymnase',objectif:'Matin: PPP + vitesse · Après-midi: handball / oppositions',note:''},
   {date:'2026-08-24',label:'24 Août · Lun',type:'collective',titre:'Force générale + Intervalles',lieu:'Gymnase',objectif:'Squats, fentes, circuit renforcement + PPP Guégan niveau 2',note:''},
-  {date:'2026-08-26',label:'26 Août · Mer',type:'exterieur',titre:'RSA + Appuis + Zone 4',lieu:'Extérieur',objectif:'Repeated Sprint Ability, travail zone 4 + PPP Guégan',note:''},
-  {date:'2026-08-28',label:'28 Août · Ven',type:'collective',titre:'Explosivité + Pliométrie contre-haut + Handball',lieu:'Gymnase',objectif:'Explosivité, transitions, handball complet',note:''},
+  {date:'2026-08-26',label:'26 Août · Mer',type:'collective',titre:'RSA + Appuis + Zone 4',lieu:'Gymnase + Piste si possible',objectif:'Repeated Sprint Ability, travail zone 4 + PPP Guégan',note:''},
+  {date:'2026-08-28',label:'28 Août · Ven',type:'collective',titre:'Explosivité + Pliométrie contre-haut + Handball',lieu:'Gymnase + Piste si possible',objectif:'Explosivité, transitions, handball complet',note:''},
   {date:'2026-08-29',label:'29/30 Août',type:'match',titre:'Match Amical n°1 ou Tournoi',lieu:'Extérieur',objectif:'Premier vrai test collectif d\'opposition',note:'90 min — opposition adaptée'},
   // PHASE 4 — Intensive + Stage (31 août - 7 sept)
   {date:'2026-08-31',label:'31 Août · Lun',type:'collective',titre:'Puissance & Intensité',lieu:'Gymnase',objectif:'Pliométrie intégrée au tir, combiné pieds-cuisses + PPP Guégan',note:''},
   {date:'2026-09-01',label:'1er Sept · Mar',type:'match',titre:'Match Amical n°2',lieu:'Extérieur',objectif:'Opposition supplémentaire — augmenter intensité',note:'90 min — adversaire bon niveau'},
-  {date:'2026-09-03',label:'3 Sept · Mer',type:'collective',titre:'Séance légère — Tactique',lieu:'Gymnase',objectif:'Jeu rapide + récupération active (pas de charge élevée)',note:'Suite amical + stage dans 2 jours'},
-  {date:'2026-09-05',label:'5 Sept · Ven soir',type:'stage',titre:'Départ Stage hors Ile-de-France',lieu:'Hors ÎdF',objectif:'Arrivée + séance en soirée',note:'Repas + cohésion'},
-  {date:'2026-09-06',label:'6 Sept · Sam',type:'stage',titre:'Stage — Jour 2',lieu:'Hors ÎdF',objectif:'Cohésion + projet de jeu + leadership',note:'Amical n°3 ou tournoi'},
-  {date:'2026-09-07',label:'7 Sept · Dim',type:'stage',titre:'Stage — Retour',lieu:'Hors ÎdF',objectif:'Matin: dernière séance · Après-midi: retour',note:''},
+  {date:'2026-09-03',label:'3 Sept · Jeu',type:'collective',titre:'Séance légère — Tactique',lieu:'Gymnase',objectif:'Jeu rapide + récupération active (pas de charge élevée)',note:'Suite amical + stage dans 2 jours'},
+  {date:'2026-09-04',label:'4 Sept · Ven soir',type:'stage',titre:'Départ Stage hors Ile-de-France',lieu:'Hors ÎdF',objectif:'Arrivée + séance en soirée',note:'Repas + cohésion'},
+  {date:'2026-09-05',label:'5 Sept · Sam',type:'stage',titre:'Stage — Jour 2',lieu:'Hors ÎdF',objectif:'Cohésion + projet de jeu + leadership',note:'Amical n°3 ou tournoi'},
+  {date:'2026-09-06',label:'6 Sept · Dim',type:'stage',titre:'Stage — Retour',lieu:'Hors ÎdF',objectif:'Matin: dernière séance · Après-midi: retour',note:''},
   // PHASE 5 — Affûtage (8-13 sept)
-  {date:'2026-09-08',label:'8 Sept · Lun',type:'repos',titre:'Repos — Récupération post-stage',lieu:'—',objectif:'Pas de séance · priorité récupération',note:'Volume -40% maintien intensité'},
-  {date:'2026-09-09',label:'9 Sept · Mar',type:'collective',titre:'Séance adaptée post-stage',lieu:'Gymnase',objectif:'Activation légère ou jeu à intensité réduite',note:'Contenu à définir selon état de forme'},
-  {date:'2026-09-11',label:'11 Sept · Jeu',type:'collective',titre:'Activation pré-match',lieu:'Gymnase',objectif:'PPP court + activation neuromusculaire + échauffement type match',note:'Séance légère — finir avec de l\'énergie'},
+  {date:'2026-09-07',label:'7 Sept · Lun',type:'repos',titre:'Repos — Récupération post-stage',lieu:'—',objectif:'Pas de séance · priorité récupération',note:'Volume -40% maintien intensité'},
+  {date:'2026-09-09',label:'9 Sept · Mer',type:'collective',titre:'Séance adaptée post-stage',lieu:'Gymnase',objectif:'Activation légère ou jeu à intensité réduite',note:'Contenu à définir selon état de forme'},
+  {date:'2026-09-10',label:'10 Sept · Jeu',type:'collective',titre:'Activation pré-match',lieu:'Gymnase + Piste si possible',objectif:'PPP court + activation neuromusculaire + échauffement type match',note:'Séance légère — finir avec de l\'énergie'},
   {date:'2026-09-13',label:'13 Sept · Dim',type:'match',titre:'🏆 J1 CHAMPIONNAT — R1',lieu:'À définir',objectif:'ENTRÉE EN COMPÉTITION',note:'Saison 2026-2027'},
 ];
 
