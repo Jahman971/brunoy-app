@@ -379,6 +379,7 @@ select.input-field option{background:var(--s2)}
     <button class="ctab active" id="ctab-joueurs" onclick="coachTab('joueurs')">Joueurs</button>
     <button class="ctab" id="ctab-semaine" onclick="coachTab('semaine')">Semaine</button>
     <button class="ctab" id="ctab-stats" onclick="coachTab('stats')">Stats</button>
+    <button class="ctab" id="ctab-planning" onclick="coachTab('planning')">Planning</button>
     <button class="ctab" id="ctab-annonce" onclick="coachTab('annonce')">Message</button>
   </div>
   <div class="coach-content" id="coach-content"></div>
@@ -517,6 +518,47 @@ select.input-field option{background:var(--s2)}
       <button class="btn btn-secondary" onclick="stopTimer();closeModal('modal-timer')" style="width:auto;padding:14px 18px">↺</button>
     </div>
     <div style="font-size:11px;color:var(--dim);margin-top:10px">2 min effort · 1 min récupération · signal sonore à chaque changement</div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-edit-event">
+  <div class="modal" style="max-height:85vh;overflow-y:auto">
+    <div class="modal-title" id="mee-title">Événement <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button></div>
+    <div class="input-group">
+      <label class="input-label">Date</label>
+      <input class="input-field" id="mee-date" type="date">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Titre</label>
+      <input class="input-field" id="mee-titre" placeholder="Ex: Séance collective">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Type</label>
+      <select class="input-field" id="mee-type">
+        <option value="collective">Entraînement collectif</option>
+        <option value="exterieur">Extérieur / Piste</option>
+        <option value="match">Match amical</option>
+        <option value="stage">Stage</option>
+        <option value="cohesion">Cohésion</option>
+        <option value="repos">Repos</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Lieu</label>
+      <input class="input-field" id="mee-lieu" placeholder="Ex: Gymnase">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Objectif</label>
+      <input class="input-field" id="mee-objectif" placeholder="Ex: Travail tactique">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Note / Détail</label>
+      <textarea class="input-field" id="mee-note" rows="2" style="resize:none" placeholder="Infos complémentaires..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveEvent()">💾 Sauvegarder</button>
+      <button class="btn btn-secondary btn-sm" id="mee-delete-btn" onclick="deleteEvent()" style="color:var(--red);border-color:rgba(200,27,27,.3);display:none">🗑️</button>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -1454,7 +1496,8 @@ function renderPhase2Today(j, today, todayStr){
 
 function renderPhase3Today(today){
   const todayStr=today.toISOString().split('T')[0];
-  const event=PHASE3_SCHEDULE.find(e=>e.date===todayStr);
+  const plan3=_planningCache||PHASE3_SCHEDULE;
+  const event=plan3.find(e=>e.date===todayStr);
   if(event){
     const isMatch=event.type==='match', isStage=event.type==='stage';
     return `<div class="today-card" style="${isMatch?'border-color:rgba(245,158,11,.4)':''}">
@@ -1552,7 +1595,8 @@ function showProgWeek(weekIdx){
 
 function toggleWeekDetail(id){const el=g(id);if(el){el.style.display=el.style.display==='none'?'block':'none';}}
 
-function renderProgCollective(phaseKey){
+async function renderProgCollective(phaseKey){
+  const plan = _planningCache || await getPlanning();
   const phaseFilters = {
     p3:['2026-08-17','2026-08-30'],
     p4:['2026-08-31','2026-09-07'],
@@ -1560,7 +1604,7 @@ function renderProgCollective(phaseKey){
   };
   const [from,to]=phaseFilters[phaseKey]||['',''];
   const ph=PHASES_DATES[phaseKey];
-  const filtered=PHASE3_SCHEDULE.filter(e=>e.date>=from&&e.date<=to);
+  const filtered=plan.filter(e=>e.date>=from&&e.date<=to);
   const phaseDesc={
     p3:'Reprise Collective — 17 → 30 août · 2 semaines · Volume & Cohésion',
     p4:'Phase Intensive + Stage — 31 août → 7 sept. · Puissance & Stage hors ÎdF',
@@ -1787,10 +1831,11 @@ async function loginCoach(){
 function logoutCoach(){coachPwd=null;currentCoach=null;selectedCoachId='lohan';showScreen('landing');}
 
 function coachTab(tab){
-  ['joueurs','semaine','stats','annonce'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
+  ['joueurs','semaine','stats','planning','annonce'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
   if(tab==='joueurs') renderCoachJoueurs();
   else if(tab==='semaine') renderCoachSemaine();
   else if(tab==='stats') renderCoachStats();
+  else if(tab==='planning') renderCoachPlanning();
   else renderCoachAnnonce();
 }
 
@@ -2199,6 +2244,119 @@ async function changeCoachPwd(){
   await sbSaveMeta('coach_pwd_'+currentCoach.id, newPwd);
   showToast('Mot de passe changé : '+newPwd+' 🔑','success');
   if(g('new-coach-pwd')) g('new-coach-pwd').value='';
+}
+
+
+// ══════════════════════════════════════════════════
+// COACH — PLANNING COLLECTIF ÉDITABLE
+// ══════════════════════════════════════════════════
+let _planningCache = null;
+let _editingEventIdx = -1; // -1 = new event
+
+async function getPlanning(){
+  if(_planningCache) return _planningCache;
+  const stored = await sbGetMeta('planning_collectif', null);
+  _planningCache = stored || JSON.parse(JSON.stringify(PHASE3_SCHEDULE));
+  return _planningCache;
+}
+async function savePlanning(plan){
+  _planningCache = plan;
+  await sbSaveMeta('planning_collectif', plan);
+}
+
+async function renderCoachPlanning(){
+  const plan = await getPlanning();
+  const phases = {
+    p3:{label:'Phase 3 — Reprise Collective (17→30 août)',  from:'2026-08-17',to:'2026-08-30'},
+    p4:{label:'Phase 4 — Intensive + Stage (31 août→7 sept)',from:'2026-08-31',to:'2026-09-07'},
+    p5:{label:'Phase 5 — Affûtage (8→13 sept)',             from:'2026-09-08',to:'2026-09-13'},
+  };
+  let h=`<button class="btn btn-primary btn-sm" style="margin-bottom:14px" onclick="openNewEvent()">+ Ajouter un événement</button>`;
+  for(const [key,ph] of Object.entries(phases)){
+    const events=plan.filter(e=>e.date>=ph.from&&e.date<=ph.to).sort((a,b)=>a.date.localeCompare(b.date));
+    h+=`<div style="font-family:var(--fnt-head);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${key==='p3'?'var(--green)':key==='p4'?'var(--yellow)':'#a855f7'};margin:14px 0 8px">${ph.label}</div>`;
+    if(!events.length){h+=`<div style="font-size:12px;color:var(--dim);margin-bottom:8px">Aucun événement</div>`;}
+    events.forEach((e,i)=>{
+      const globalIdx=plan.indexOf(e);
+      const typeIcon={'collective':'🏐','exterieur':'🏃','match':'⚽','stage':'🏕️','cohesion':'🤝','repos':'😴'}[e.type]||'📅';
+      h+=`<div class="player-row" style="cursor:pointer" onclick="openEditEvent(${globalIdx})">
+        <div style="font-family:var(--fnt-head);font-size:13px;font-weight:700;color:var(--red);width:56px;flex-shrink:0">${e.label||e.date}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:13px">${typeIcon} ${e.titre}</div>
+          <div style="font-size:11px;color:var(--gray)">${e.lieu||''}${e.objectif?' · '+e.objectif:''}</div>
+        </div>
+        <span style="color:var(--dim);font-size:16px">✏️</span>
+      </div>`;
+    });
+  }
+  g('coach-content').innerHTML=h;
+}
+
+function openNewEvent(){
+  _editingEventIdx=-1;
+  g('mee-title').innerHTML='Nouvel événement <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>';
+  g('mee-date').value='2026-08-17';
+  g('mee-titre').value='';
+  g('mee-type').value='collective';
+  g('mee-lieu').value='Gymnase';
+  g('mee-objectif').value='';
+  g('mee-note').value='';
+  g('mee-delete-btn').style.display='none';
+  openModal('modal-edit-event');
+}
+
+async function openEditEvent(idx){
+  const plan=await getPlanning();
+  const e=plan[idx];
+  if(!e) return;
+  _editingEventIdx=idx;
+  g('mee-title').innerHTML=`Modifier l\'événement <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>`;
+  g('mee-date').value=e.date||'';
+  g('mee-titre').value=e.titre||'';
+  g('mee-type').value=e.type||'collective';
+  g('mee-lieu').value=e.lieu||'';
+  g('mee-objectif').value=e.objectif||'';
+  g('mee-note').value=e.note||'';
+  g('mee-delete-btn').style.display='flex';
+  openModal('modal-edit-event');
+}
+
+async function saveEvent(){
+  const date=g('mee-date').value;
+  const titre=g('mee-titre').value.trim();
+  if(!date||!titre){showToast('Date et titre obligatoires','error');return;}
+  // Generate label from date
+  const d=new Date(date+'T12:00:00');
+  const jours=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const mois=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
+  const label=`${d.getDate()} ${mois[d.getMonth()]} · ${jours[d.getDay()]}`;
+  const event={
+    date, label,
+    titre,
+    type:g('mee-type').value,
+    lieu:g('mee-lieu').value.trim(),
+    objectif:g('mee-objectif').value.trim(),
+    note:g('mee-note').value.trim(),
+  };
+  const plan=await getPlanning();
+  if(_editingEventIdx>=0) plan[_editingEventIdx]=event;
+  else plan.push(event);
+  plan.sort((a,b)=>a.date.localeCompare(b.date));
+  await savePlanning(plan);
+  closeModal('modal-edit-event');
+  showToast(_editingEventIdx>=0?'Événement mis à jour ✅':'Événement ajouté ✅','success');
+  renderCoachPlanning();
+}
+
+async function deleteEvent(){
+  if(_editingEventIdx<0) return;
+  if(!confirm('Supprimer cet événement ?')) return;
+  const plan=await getPlanning();
+  plan.splice(_editingEventIdx,1);
+  await savePlanning(plan);
+  closeModal('modal-edit-event');
+  showToast('Événement supprimé','info');
+  renderCoachPlanning();
 }
 
 // ══════════════════════════════════════════════════
