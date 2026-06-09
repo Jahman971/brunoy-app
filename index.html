@@ -651,138 +651,213 @@ function formatDate(d){return new Date(d).toLocaleDateString('fr-FR',{weekday:'s
 // ══════════════════════════════════════════════════
 // SESSION GENERATORS — PHASE 2
 // ══════════════════════════════════════════════════
+// ══ HELPERS MATÉRIEL ══
+function hasMat(j,t){const m=j.materiel||[];if(t==='salle')return m.includes('Salle de muscu');if(t==='elast')return m.includes('Élastiques')||m.includes('Salle de muscu');return true;}
+function mTag(t){
+  if(t==='salle')return ' <span style="font-size:9px;background:rgba(59,130,246,.15);color:#60a5fa;padding:1px 5px;border-radius:8px;font-weight:600">🏋️ SALLE</span>';
+  if(t==='elast')return ' <span style="font-size:9px;background:rgba(245,158,11,.12);color:#fbbf24;padding:1px 5px;border-radius:8px;font-weight:600">🟡 ÉLASTIQUE</span>';
+  return ' <span style="font-size:9px;background:rgba(34,197,94,.1);color:#4ade80;padding:1px 5px;border-radius:8px;font-weight:600">✅ SANS MATÉRIEL</span>';
+}
+
 function genSessionA(weekIdx, joueur){
-  // Session A : PPP Échauffement + Cardio/VMA
-  const vma = joueur.vma||13, a=getAllures(vma), nn=getNiveauNum(vma);
+  const vma=joueur.vma||13, a=getAllures(vma), nn=getNiveauNum(vma);
   const phases=['Fondation','Construction I','Construction II','Intensification','Affûtage'];
   const ph=phases[weekIdx]||'Fondation';
-  const obligatoire = true;
+  const hasSalle=hasMat(joueur,'salle');
   let titre, cardioBloc, tags=['cardio','ppp'];
 
-  if(weekIdx===0){ // Fondation
+  if(weekIdx===0){
     const dur=nn===0?25:nn===1?30:35;
     titre='PPP + Endurance Fondamentale';
-    cardioBloc={titre:'Endurance fondamentale',detail:`${dur} min de footing continu à <strong>${a.fond} km/h</strong> (${kmhToMinKm(a.fond)}/km)`,note:'Allure conversation — tu dois pouvoir parler sans difficulté'};
-  } else if(weekIdx===1){ // Construction I
+    cardioBloc={titre:'Endurance fondamentale'+mTag('none'),detail:`${dur} min footing continu à <strong>${a.fond} km/h</strong> (${kmhToMinKm(a.fond)}/km)`,note:'Allure conversation — tu dois pouvoir parler'};
+  } else if(weekIdx===1){
     const ser=nn<=1?2:3;
     titre='PPP + Seuil Aérobie';
-    cardioBloc={titre:'Fractionné long — Seuil',detail:`${ser} × 8 min à <strong>${a.seuil} km/h</strong> (${kmhToMinKm(a.seuil)}/km) · Récup 3 min à ${a.recup} km/h`,note:'Intensité contrôlée — souffle un peu difficile mais tu peux encore parler'};
-  } else if(weekIdx===2){ // Construction II
+    cardioBloc={titre:'Fractionné long — Seuil'+mTag('none'),detail:`${ser} × 8 min à <strong>${a.seuil} km/h</strong> · Récup 3 min à ${a.recup} km/h`,note:'Souffle difficile mais tu peux encore parler'};
+  } else if(weekIdx===2){
     const reps=nn===0?10:nn===1?14:nn===2?16:20;
-    titre='PPP + VMA 30/30';
-    tags.push('vma');
-    cardioBloc={titre:`30/30 — Puissance aérobie`,detail:`${reps} rép. × 30s à <strong>${a.vma100} km/h</strong> / 30s à ${a.recup} km/h`,note:'Intensité élevée sur les 30s actives — développement VMA'};
-  } else if(weekIdx===3){ // Intensification
+    titre='PPP + VMA 30/30'; tags.push('vma');
+    cardioBloc={titre:'30/30 — Puissance aérobie'+mTag('none'),detail:`${reps} rép. × 30s à <strong>${a.vma100} km/h</strong> / 30s récup à ${a.recup} km/h`,note:'Intensité élevée sur les 30s actives'};
+  } else if(weekIdx===3){
     const reps=nn===0?12:nn===1?16:nn===2?18:22;
-    titre='PPP + VMA Intensifié';
-    tags.push('vma');
-    cardioBloc={titre:`30/30 — Haute intensité`,detail:`${reps} rép. × 30s à <strong>${a.puissance} km/h</strong> / 30s à ${a.recup} km/h`,note:'Effort maximal sur les 30s actives — fatigue neuromusculaire attendue'};
-  } else { // Affûtage
+    titre='PPP + VMA Intensifié'; tags.push('vma');
+    cardioBloc={titre:'30/30 — Haute intensité'+mTag('none'),detail:`${reps} rép. × 30s à <strong>${a.puissance} km/h</strong> / 30s récup`,note:'Effort maximal sur les 30s actives'};
+  } else {
     titre='PPP + Activation Légère';
-    cardioBloc={titre:'Footing d\'activation',detail:`20-25 min à <strong>${a.fond} km/h</strong> + 4 × 30m accélérations progressives`,note:'Séance légère — prépare la reprise collective'};
+    cardioBloc={titre:'Footing activation'+mTag('none'),detail:`20-25 min à <strong>${a.fond} km/h</strong> + 4 × 30m accélérations`,note:'Séance légère — prépare la reprise collective'};
   }
 
+  const nordicDetail=hasSalle
+    ?'3 × 6 rép. · talons sous la barre · descente 4-5s contrôlée'
+    :'3 × 6 rép. · talons fixés par un partenaire ou sous un meuble · descente 4-5s';
+
   return {
-    titre, obligatoire, tags, type:'PPP + Cardio',
-    phase:ph, semaine:weekIdx+1,
+    titre, obligatoire:true, tags, type:'PPP + Cardio', phase:ph, semaine:weekIdx+1,
     blocs:[
-      {id:'ech',titre:'Échauffement PPP Guégan',detail:'9-12 min · 3 phases progressives (mise en train → activation → dynamique)',ppp:'echauffement'},
+      {id:'ech',titre:'Échauffement PPP Guégan'+mTag('none'),detail:'9-12 min · 3 phases progressives',ppp:'echauffement'},
       cardioBloc,
-      {id:'nordic',titre:'Nordic Curl — Ischiojambiers ⭐',detail:'3 × 6 répétitions · descente 4-5 secondes contrôlée',ppp:'nordic'},
-      {id:'proprio',titre:'Proprioception Cheville',detail:'2 × 30s / jambe · unipodal yeux ouverts puis fermés',ppp:'proprio_cheville'},
-      {id:'etir',titre:'Étirements globaux',detail:'8-10 min · chaînes post., épaules, hanches, quadriceps',ppp:'etirements'},
+      {id:'nordic',titre:'Nordic Curl ⭐'+mTag(hasSalle?'salle':'none'),detail:nordicDetail,ppp:'nordic'},
+      {id:'proprio',titre:'Proprioception Cheville'+mTag('none'),detail:'2 × 30s / jambe · unipodal yeux ouverts puis fermés',ppp:'proprio_cheville'},
+      {id:'etir',titre:'Étirements globaux'+mTag('none'),detail:'8-10 min · chaînes post., épaules, hanches',ppp:'etirements'},
     ]
   };
 }
 
 function genSessionB(weekIdx, joueur){
-  // Session B : Force + Anti-blessure PPP
   const vma=joueur.vma||13, nn=getNiveauNum(vma);
   const poste=joueur.poste||'';
   const phases=['Fondation','Construction I','Construction II','Intensification','Affûtage'];
   const ph=phases[weekIdx]||'Fondation';
   const tags=['force','ppp'];
+  const hasSalle=hasMat(joueur,'salle'), hasElast=hasMat(joueur,'elast');
+  const isGardien=poste.includes('Gardien'), isPivot=poste.includes('Pivot')||poste.includes('Demi');
   let titre, seancePrinc;
-
-  const isGardien=poste.includes('Gardien');
-  const isAilier=poste.includes('Ailier');
-  const isPivot=poste.includes('Pivot') || poste.includes('Demi');
 
   if(weekIdx===0){
     titre='Force de Base + Anti-Blessure';
-    seancePrinc=[
-      {titre:'Squats poids du corps',detail:`${3+nn} × ${12+nn*2} rép. · descente 3s, montée explosive`,note:'Talons au sol, genoux dans l\'axe'},
-      {titre:'Fentes alternées',detail:`3 × 10 / jambe · grand pas, genou à 90°`,note:''},
-      {titre:'Pompes',detail:`3 × ${8+nn*4} rép.`,note:isGardien?'Associer dissociation coude-poignet':''},
-    ];
+    if(hasSalle){
+      seancePrinc=[
+        {titre:'Squat barre'+mTag('salle'),detail:`4 × ${8+nn*2} rép. · descente 3s · charge adaptée`,note:'Priorité technique — genoux dans l'axe'},
+        {titre:'Développé couché'+mTag('salle'),detail:`3 × ${8+nn*2} rép. · tempo contrôlé`,note:isGardien?'Associer dissociation coude':''},
+        {titre:'Tirage horizontal (rowing)'+mTag('salle'),detail:`3 × 10 rép. · omoplate engagée`,note:'Fondamental pour la chaîne post.'},
+        {titre:'Fentes avec haltères'+mTag('salle'),detail:`3 × 8 / jambe`,note:isPivot?'Priorité ancrage au sol':''},
+      ];
+    } else if(hasElast){
+      seancePrinc=[
+        {titre:'Squats poids du corps'+mTag('none'),detail:`${3+nn} × ${12+nn*2} rép. · descente 3s, montée explosive`,note:'Genoux dans l'axe'},
+        {titre:'Fentes alternées'+mTag('none'),detail:`3 × 10 / jambe`,note:''},
+        {titre:'Pompes'+mTag('none'),detail:`3 × ${8+nn*4} rép.`,note:isGardien?'Dissociation coude-poignet':''},
+        {titre:'Déplacements latéraux — élastique'+mTag('elast'),detail:`2 × 10 / côté · élastique aux genoux · bas du corps actif`,note:''},
+      ];
+    } else {
+      seancePrinc=[
+        {titre:'Squats poids du corps'+mTag('none'),detail:`${3+nn} × ${12+nn*2} rép. · descente 3s, montée explosive`,note:'Genoux dans l'axe'},
+        {titre:'Fentes alternées'+mTag('none'),detail:`3 × 10 / jambe`,note:''},
+        {titre:'Pompes'+mTag('none'),detail:`3 × ${8+nn*4} rép.`,note:isGardien?'Dissociation coude-poignet':''},
+        {titre:'Chaise murale isométrique'+mTag('none'),detail:`3 × 45s · dos au mur · genoux 90°`,note:''},
+      ];
+    }
   } else if(weekIdx<=2){
     titre='Renforcement Handball + Anti-Blessure';
-    seancePrinc=[
-      {titre:'Squats sautés',detail:`3 × 8-10 rép. · explosive à la montée, atterrissage souple`,note:'Genoux dans l\'axe à l\'atterrissage'},
-      {titre:'Fentes sautées',detail:`3 × 6 / jambe`,note:isPivot?'Priorité sur la force d\'ancrage au sol':''},
-      {titre:isPivot?'Renfo adducteurs élastique':'Renfo abducteurs hanche',detail:'2 × 8 / côté avec élastique',note:''},
-    ];
+    if(hasSalle){
+      seancePrinc=[
+        {titre:'Squat sauté leste léger'+mTag('salle'),detail:`3 × 8 · 10-20kg · atterrissage souple genoux dans l'axe`,note:''},
+        {titre:'Fentes bulgares haltères'+mTag('salle'),detail:`3 × 8 / jambe · pied arrière sur banc`,note:isPivot?'Priorité ancrage':''},
+        {titre:'Soulevé de terre roumain'+mTag('salle'),detail:`3 × 10 · protection ischiojambiers`,note:'Parfait complément Nordic Curl'},
+        {titre:'Rowing unilatéral haltère'+mTag('salle'),detail:`3 × 10 / bras`,note:''},
+      ];
+    } else if(hasElast){
+      seancePrinc=[
+        {titre:'Squats sautés'+mTag('none'),detail:`3 × 8-10 · explosif à la montée, atterrissage souple`,note:'Genoux dans l'axe'},
+        {titre:'Fentes sautées'+mTag('none'),detail:`3 × 6 / jambe`,note:''},
+        {titre:'Renfo abducteurs — élastique'+mTag('elast'),detail:`3 × 10 / côté · élastique aux genoux · déplacements latéraux`,note:isPivot?'Priorité adducteurs':''},
+        {titre:'Pompes claquées'+mTag('none'),detail:`3 × 6 · explosif à la poussée`,note:''},
+      ];
+    } else {
+      seancePrinc=[
+        {titre:'Squats sautés'+mTag('none'),detail:`3 × 8-10 · explosif à la montée`,note:'Genoux dans l'axe'},
+        {titre:'Fentes sautées'+mTag('none'),detail:`3 × 6 / jambe`,note:''},
+        {titre:'Pistol squat assisté'+mTag('none'),detail:`3 × 5 / jambe · appui mur ou chaise`,note:'Progression vers le pistol complet'},
+        {titre:'Pompes claquées'+mTag('none'),detail:`3 × 6`,note:''},
+      ];
+    }
   } else {
     titre='Renforcement Intensifié + Anti-Blessure';
-    seancePrinc=[
-      {titre:'Squats bulgares',detail:`3 × 8 / jambe · pied arrière surélevé · intensité maximale`,note:'Progression depuis les semaines précédentes'},
-      {titre:'Fentes explosives (6 axes)',detail:`3-6 enchaînements`,note:''},
-      {titre:'Chaise murale',detail:`3 × 45s`,note:''},
-    ];
+    if(hasSalle){
+      seancePrinc=[
+        {titre:'Squat lourd'+mTag('salle'),detail:`4 × 5 · charge max contrôlée · 3 min récup`,note:'Séance de force max — technique prioritaire'},
+        {titre:'Fentes bulgares lestées'+mTag('salle'),detail:`4 × 6 / jambe`,note:''},
+        {titre:'Développé militaire'+mTag('salle'),detail:`3 × 8 · épaules stabilisées`,note:''},
+        {titre:'Traction / Lat Machine'+mTag('salle'),detail:`3 × 8-10`,note:''},
+      ];
+    } else if(hasElast){
+      seancePrinc=[
+        {titre:'Squats bulgares'+mTag('none'),detail:`4 × 8 / jambe · pied arrière surélevé`,note:''},
+        {titre:'Fentes explosives 6 axes'+mTag('none'),detail:`3-6 enchaînements`,note:''},
+        {titre:'Gainage dynamique + résistance élastique'+mTag('elast'),detail:`3 × 30s · chaînes croisées avec élastique`,note:''},
+        {titre:'Pompes archer'+mTag('none'),detail:`3 × 5 / côté · pompe quasi-unilatérale`,note:''},
+      ];
+    } else {
+      seancePrinc=[
+        {titre:'Squats bulgares'+mTag('none'),detail:`4 × 8 / jambe · pied arrière surélevé`,note:''},
+        {titre:'Fentes explosives 6 axes'+mTag('none'),detail:`3-6 enchaînements`,note:''},
+        {titre:'Pistol squat'+mTag('none'),detail:`3 × 5 / jambe`,note:''},
+        {titre:'Pompes archer'+mTag('none'),detail:`3 × 5 / côté`,note:''},
+      ];
+    }
   }
 
+  const fixatDetail=hasElast
+    ?'2-3 × 6-8 · rotation externe + rétropulsion avec élastique'
+    :'2-3 × 6-8 pompes bras tendus · mobilisation omoplates (sans élastique)';
+  const rotDetail=hasElast
+    ?'3 × 6-8 / bras · coude au corps · freiner le retour lentement avec élastique'
+    :'3 × 6-8 / bras · excentrique dos au partenaire · freiner 3 secondes';
+  const propGenou=hasElast
+    ?'2 × 30s / jambe · unipodal + abduction genou contre élastique'
+    :'2 × 30s / jambe · unipodal genou fléchi · résister au valgus (sans élastique)';
+  const nordicDetail=hasSalle
+    ?'3 × 6 · talons sous la barre · descente 4-5s'
+    :'3 × 6 · talons fixés partenaire ou meuble · descente 4-5s';
+  const matLvl=hasSalle?'salle':hasElast?'elast':'none';
+
   return {
-    titre, obligatoire:true, tags, type:'Force + Anti-Blessure',
-    phase:ph, semaine:weekIdx+1,
+    titre, obligatoire:true, tags, type:'Force + Anti-Blessure', phase:ph, semaine:weekIdx+1,
     blocs:[
-      {id:'ech_art',titre:'Échauffement articulaire',detail:'8 min · épaules, hanches, chevilles, genoux · mouvements progressifs'},
-      {id:'fixateurs',titre:'Fixateurs d\'Omoplates ⭐',detail:'2-3 × 6-8 mouvements · rotation externe + rétropulsion avec élastique',ppp:'fixateurs_omoplate'},
+      {id:'ech_art',titre:'Échauffement articulaire'+mTag('none'),detail:'8 min · épaules, hanches, chevilles, genoux'},
+      {id:'fixateurs',titre:'Fixateurs d'Omoplates ⭐'+mTag(hasElast?'elast':'none'),detail:fixatDetail,ppp:'fixateurs_omoplate'},
       ...seancePrinc,
-      {id:'rotateurs',titre:'Rotateurs Ext. Épaule ⭐',detail:'3 × 6-8 / bras · excentrique dos au partenaire ou élastique',ppp:'rotateurs_epaule'},
-      {id:'gainage_lat',titre:'Gainage Latéral Bras Armer',detail:'3 × 40s / côté · montées-descentes lentes du bassin',ppp:'gainage_lateral'},
-      {id:'gainage_sol',titre:'Gainage Chaînes Croisées',detail:'3 × 5 / diagonale · extension simultanée bras + jambe opposés',ppp:'gainage_plank'},
-      {id:'nordic',titre:'Nordic Curl — Ischiojambiers ⭐',detail:'3 × 6 rép. · descente 4-5 secondes',ppp:'nordic'},
-      {id:'proprio_g',titre:'Proprioception Genou Anti-Valgus',detail:'2 × 30s / jambe · équilibre unipodal genou fléchi',ppp:'proprio_genou'},
-      {id:'etir',titre:'Étirements globaux',detail:'8-10 min systématiques',ppp:'etirements'},
+      {id:'rotateurs',titre:'Rotateurs Ext. Épaule ⭐'+mTag(hasElast?'elast':'none'),detail:rotDetail,ppp:'rotateurs_epaule'},
+      {id:'gainage_lat',titre:'Gainage Latéral Bras Armer'+mTag('none'),detail:'3 × 40s / côté · montées-descentes lentes du bassin',ppp:'gainage_lateral'},
+      {id:'gainage_sol',titre:'Gainage Chaînes Croisées'+mTag('none'),detail:'3 × 5 / diagonale · extension simultanée bras + jambe opposés',ppp:'gainage_plank'},
+      {id:'nordic',titre:'Nordic Curl ⭐'+mTag(matLvl),detail:nordicDetail,ppp:'nordic'},
+      {id:'proprio_g',titre:'Proprioception Genou Anti-Valgus'+mTag(hasElast?'elast':'none'),detail:propGenou,ppp:'proprio_genou'},
+      {id:'etir',titre:'Étirements globaux'+mTag('none'),detail:'8-10 min systématiques',ppp:'etirements'},
     ]
   };
 }
 
 function genSessionC(weekIdx, joueur){
-  // Session C : Vitesse + Explosivité (OPTIONNELLE)
   const vma=joueur.vma||13, nn=getNiveauNum(vma);
   const phases=['Fondation','Construction I','Construction II','Intensification','Affûtage'];
   const ph=phases[weekIdx]||'Fondation';
+  const hasSalle=hasMat(joueur,'salle'), hasElast=hasMat(joueur,'elast');
   let titre, mainBloc;
 
   if(weekIdx===0){
-    titre='Coordination & Qualité d\'Appuis';
+    titre='Coordination & Qualité d'Appuis';
     mainBloc=[
-      {titre:'Éducatifs de course',detail:'3 × 20m · montées genoux, talons-fesses, skipping',note:'Focus qualité du geste'},
-      {titre:'Accélérations progressives',detail:'4-6 × 30m · de 60% à 90% · pas de sprint max',note:''},
-      {titre:'Agilité handball',detail:'3× : 5m latéral D → 5m latéral G → 360° × 4',note:''},
+      {titre:'Éducatifs de course'+mTag('none'),detail:'3 × 20m · montées genoux, talons-fesses, skipping',note:'Focus qualité du geste'},
+      {titre:'Accélérations progressives'+mTag('none'),detail:'4-6 × 30m · de 60% à 90%',note:''},
+      {titre:'Agilité handball'+mTag('none'),detail:'3× : 5m latéral D → 5m latéral G → 360°',note:''},
+      ...(hasElast?[{titre:'Déplacements défensifs — élastique'+mTag('elast'),detail:'3 × 15m · élastique aux chevilles · bas du corps actif',note:'Spécifique défense handball'}]:[]),
     ];
   } else if(weekIdx===1){
     const ns=nn===0?6:nn===1?8:10;
     titre='Sprints & Changements de Direction';
     mainBloc=[
-      {titre:`Sprints 10m`,detail:`${ns} × 10m départ arrêté · récup 45s`,note:'Chronomètre-toi pour suivre ta progression !'},
-      {titre:`Sprints 20m`,detail:`${Math.round(ns*.75)} × 20m · récup 60s`,note:''},
-      {titre:'Carioca & Slalom',detail:'4 × 15m aller-retour · déplacements défensifs',note:''},
+      {titre:'Sprints 10m'+mTag('none'),detail:`${ns} × 10m départ arrêté · récup 45s`,note:'Chronomètre-toi !'},
+      {titre:'Sprints 20m'+mTag('none'),detail:`${Math.round(ns*.75)} × 20m · récup 60s`,note:''},
+      {titre:'Carioca & Slalom'+mTag('none'),detail:'4 × 15m aller-retour',note:''},
+      ...(hasSalle?[{titre:'Box Jump'+mTag('salle'),detail:`3 × 6 · caisse 40-60cm · réception souple`,note:''}]:
+         hasElast?[{titre:'Sprint résisté élastique'+mTag('elast'),detail:`4 × 15m · partenaire tient l'élastique`,note:'Renforce la phase de poussée'}]:[]),
     ];
   } else if(weekIdx===2){
     titre='Pliométrie & Explosivité';
     mainBloc=[
-      {titre:'Pliométrie basse — Sauts latéraux',detail:'3-4 × 20s · sauts explosifs alternés sur 2 marques',ppp:'pliometrie_basse'},
-      {titre:'Pied athlétique',detail:'4 × 6 sauts · genoux verrouillés · rebonds depuis les pieds',ppp:'pied_athletique'},
-      {titre:'Sauts groupés',detail:`3 × 6 sauts genou-poitrine · réception souple genoux fléchis`,note:''},
+      {titre:'Pliométrie basse — Sauts latéraux'+mTag('none'),detail:'3-4 × 20s · sauts explosifs alternés',ppp:'pliometrie_basse'},
+      {titre:'Pied athlétique'+mTag('none'),detail:'4 × 6 sauts · genoux verrouillés · rebonds pieds',ppp:'pied_athletique'},
+      {titre:'Sauts groupés'+mTag('none'),detail:`3 × 6 sauts genou-poitrine`,note:''},
+      ...(hasSalle?[{titre:'Drop Jump (contrebas)'+mTag('salle'),detail:`3 × 5 · descente caisse 40cm → rebond explosif`,note:'Force réactive max'}]:[]),
     ];
   } else {
     titre='Spécifique Handball Haute Intensité';
     mainBloc=[
-      {titre:'Sprints répétés',detail:`3 séries × 5 sprints 15m · récup 30s entre, 3 min entre séries`,note:'Reproduit les efforts de match'},
-      {titre:'Pliométrie latérale stabilisée',detail:'4 × 6 / côté · saut latéral explosif + stabilisation 2s',ppp:'pliometrie_basse'},
-      {titre:'Débordements avec pliométrie',detail:'3-5 enchaînements · débordements + saut explosif',note:''},
+      {titre:'Sprints répétés'+mTag('none'),detail:`3 séries × 5 sprints 15m · récup 30s`,note:'Reproduit les efforts de match'},
+      {titre:'Pliométrie latérale stabilisée'+mTag('none'),detail:'4 × 6 / côté · stabilisation 2s',ppp:'pliometrie_basse'},
+      {titre:'Débordements + pliométrie'+mTag('none'),detail:'3-5 enchaînements',note:''},
+      ...(hasSalle?[{titre:'Squat jump lesté'+mTag('salle'),detail:`3 × 6 · gilet lesté · explosif`,note:''}]:
+         hasElast?[{titre:'Sprint résisté élastique'+mTag('elast'),detail:`4 × 10m · résistance max`,note:''}]:[]),
     ];
   }
 
@@ -790,13 +865,12 @@ function genSessionC(weekIdx, joueur){
     titre, obligatoire:false, tags:['vitesse','ppp'], type:'Vitesse + Explosivité (facultatif)',
     phase:ph, semaine:weekIdx+1,
     blocs:[
-      {id:'ech_dyn',titre:'Échauffement dynamique',detail:'12 min · trot progressif + éducatifs + 3 × 10m accélérations'},
+      {id:'ech_dyn',titre:'Échauffement dynamique'+mTag('none'),detail:'12 min · trot progressif + éducatifs + accélérations'},
       ...mainBloc,
-      {id:'proprio',titre:'Proprioception Cheville',detail:'2 × 30s / jambe · unipodal + sauts stabilisés',ppp:'proprio_cheville'},
+      {id:'proprio',titre:'Proprioception Cheville'+mTag('none'),detail:'2 × 30s / jambe · unipodal + sauts stabilisés',ppp:'proprio_cheville'},
     ]
   };
 }
-
 function genPhase2Sessions(weekIdx, joueur){
   return [genSessionA(weekIdx,joueur), genSessionB(weekIdx,joueur), genSessionC(weekIdx,joueur)];
 }
