@@ -381,6 +381,7 @@ select.input-field option{background:var(--s2)}
     <button class="ctab" id="ctab-stats" onclick="coachTab('stats')">Stats</button>
     <button class="ctab" id="ctab-planning" onclick="coachTab('planning')">Planning</button>
     <button class="ctab" id="ctab-biblio" onclick="coachTab('biblio')">Biblio</button>
+    <button class="ctab" id="ctab-seances-custom" onclick="coachTab('seances-custom')">Séances</button>
     <button class="ctab" id="ctab-annonce" onclick="coachTab('annonce')">Message</button>
   </div>
   <div class="coach-content" id="coach-content"></div>
@@ -559,6 +560,71 @@ select.input-field option{background:var(--s2)}
     <div style="display:flex;gap:8px">
       <button class="btn btn-primary" style="flex:1" onclick="saveEvent()">💾 Sauvegarder</button>
       <button class="btn btn-secondary btn-sm" id="mee-delete-btn" onclick="deleteEvent()" style="color:var(--red);border-color:rgba(200,27,27,.3);display:none">🗑️</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-session-builder" style="align-items:stretch">
+  <div style="display:flex;flex-direction:column;background:var(--s1);width:100%;max-width:480px;
+    margin:0 auto;max-height:100vh;overflow:hidden">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;
+      padding-top:calc(14px + env(safe-area-inset-top,0px));
+      background:var(--s1);border-bottom:1px solid var(--brd);flex-shrink:0">
+      <button onclick="closeModal('modal-session-builder')" 
+        style="background:none;border:none;color:var(--gray);font-size:20px;cursor:pointer;padding:0">←</button>
+      <div style="flex:1;font-family:var(--fnt-head);font-size:16px;font-weight:900;
+        text-transform:uppercase;letter-spacing:1px" id="builder-header">Nouvelle Séance</div>
+      <button onclick="saveCustomSeance()" 
+        class="btn btn-primary btn-sm" style="width:auto;padding:8px 14px;font-size:12px">
+        💾 Sauvegarder
+      </button>
+    </div>
+    <!-- Session info -->
+    <div style="flex-shrink:0;padding:12px 16px;border-bottom:1px solid var(--brd)">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input class="input-field" id="builder-nom" placeholder="Nom de la séance" 
+          style="flex:2;padding:10px 12px;font-size:13px">
+        <input class="input-field" id="builder-duree" type="number" placeholder="min" 
+          style="flex:1;padding:10px 12px;font-size:13px;text-align:center" min="15" max="180" step="5">
+      </div>
+      <select class="input-field" id="builder-type" style="padding:10px 12px;font-size:13px">
+        <option value="collective">Entraînement collectif</option>
+        <option value="force">Force + PPP</option>
+        <option value="vitesse">Vitesse + Appuis</option>
+        <option value="plio">Pliométrie</option>
+        <option value="echauffement">Échauffement</option>
+        <option value="retour">Retour au calme</option>
+      </select>
+    </div>
+    <!-- Two-panel content -->
+    <div style="flex:1;display:flex;overflow:hidden">
+      <!-- Left: session blocs -->
+      <div style="flex:1;overflow-y:auto;padding:12px 10px;border-right:1px solid var(--brd)" id="builder-blocs-panel">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+          color:var(--gray);margin-bottom:8px">Ma séance <span id="builder-count" style="color:var(--red)">0 ex.</span></div>
+        <div id="builder-blocs-list"></div>
+        <button onclick="openBuilderPicker()" 
+          style="width:100%;padding:10px;border:1.5px dashed var(--brd);border-radius:var(--r);
+          background:none;color:var(--gray);font-size:12px;font-weight:600;cursor:pointer;margin-top:4px">
+          + Ajouter un exercice
+        </button>
+        <div style="margin-top:8px">
+          <input class="input-field" id="builder-custom-text" placeholder="Ou ajoute un exercice libre..." 
+            style="font-size:12px;padding:9px 10px;margin-bottom:6px">
+          <button onclick="addCustomBloc()" 
+            class="btn btn-secondary btn-sm" style="width:100%;padding:8px;font-size:11px">
+            + Ajouter texte libre
+          </button>
+        </div>
+      </div>
+      <!-- Right: library picker -->
+      <div style="width:200px;overflow-y:auto;padding:10px 8px;flex-shrink:0" id="builder-picker-panel" style="display:none">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+          color:var(--gray);margin-bottom:6px">Bibliothèque</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px" id="builder-cat-filters"></div>
+        <div id="builder-library-list"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1928,12 +1994,13 @@ async function loginCoach(){
 function logoutCoach(){coachPwd=null;currentCoach=null;selectedCoachId='lohan';showScreen('landing');}
 
 function coachTab(tab){
-  ['joueurs','semaine','stats','planning','biblio','annonce'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
+  ['joueurs','semaine','stats','planning','biblio','seances-custom','annonce'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
   if(tab==='joueurs') renderCoachJoueurs();
   else if(tab==='semaine') renderCoachSemaine();
   else if(tab==='stats') renderCoachStats();
   else if(tab==='planning') renderCoachPlanning();
   else if(tab==='biblio') renderCoachBiblio();
+  else if(tab==='seances-custom') renderCoachSeancesCustom();
   else renderCoachAnnonce();
 }
 
@@ -2753,6 +2820,213 @@ async function renderCoachBiblio(){
   }
 
   g('coach-content').innerHTML = h;
+}
+
+
+// ══════════════════════════════════════════════════
+// CONSTRUCTEUR DE SÉANCES
+// ══════════════════════════════════════════════════
+let _builderSession = {nom:'',type:'collective',duree:60,blocs:[]};
+let _builderEditIdx = -1;
+let _builderPickerCat = 'Chevilles';
+let _builderPickerOpen = false;
+
+async function loadCustomSeances(){
+  return await sbGetMeta('seances_custom', []);
+}
+async function saveCustomSeancesToDB(list){
+  await sbSaveMeta('seances_custom', list);
+}
+
+async function renderCoachSeancesCustom(){
+  const list = await loadCustomSeances();
+  let h = `<button class="btn btn-primary btn-sm" style="margin-bottom:14px" 
+    onclick="openSessionBuilder(-1)">+ Nouvelle séance</button>`;
+  if(!list.length){
+    h += `<div class="empty"><div class="empty-icon">📋</div>
+      Aucune séance créée — utilise la bibliothèque PPP pour construire tes séances</div>`;
+    g('coach-content').innerHTML=h; return;
+  }
+  list.forEach((s,i)=>{
+    const typeCol={'collective':'var(--green)','force':'var(--red)','vitesse':'var(--blue)',
+      'plio':'var(--yellow)','echauffement':'#a855f7','retour':'var(--gray)'}[s.type]||'var(--gray)';
+    h+=`<div class="player-row" style="flex-direction:column;align-items:stretch;cursor:pointer" 
+      onclick="openSessionBuilder(${i})">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:8px;background:${typeCol}22;
+          border:1px solid ${typeCol}44;display:flex;align-items:center;justify-content:center;
+          font-size:16px;flex-shrink:0">📋</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:14px">${s.nom||'Séance sans nom'}</div>
+          <div style="font-size:11px;color:var(--gray)">${s.blocs?.length||0} exercices · ${s.duree||'?'} min · ${s.type}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="event.stopPropagation();addSeanceToPlanning(${i})" 
+            style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:6px;
+            color:var(--green);font-size:11px;font-weight:600;padding:5px 8px;cursor:pointer">
+            📅 Ajouter au planning
+          </button>
+          <button onclick="event.stopPropagation();deleteCustomSeance(${i})" 
+            style="background:none;border:1px solid var(--brd);border-radius:6px;
+            color:var(--gray);font-size:11px;padding:5px 8px;cursor:pointer">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  g('coach-content').innerHTML=h;
+}
+
+async function openSessionBuilder(idx){
+  _builderEditIdx = idx;
+  if(idx>=0){
+    const list = await loadCustomSeances();
+    _builderSession = JSON.parse(JSON.stringify(list[idx]));
+    g('builder-header').textContent = 'Modifier la séance';
+  } else {
+    _builderSession = {nom:'',type:'collective',duree:60,blocs:[]};
+    g('builder-header').textContent = 'Nouvelle séance';
+  }
+  g('builder-nom').value = _builderSession.nom||'';
+  g('builder-duree').value = _builderSession.duree||60;
+  g('builder-type').value = _builderSession.type||'collective';
+  _builderPickerOpen = false;
+  renderBuilderBlocs();
+  renderBuilderPicker();
+  openModal('modal-session-builder');
+}
+
+function renderBuilderBlocs(){
+  const list = _builderSession.blocs||[];
+  g('builder-count').textContent = list.length + ' ex.';
+  let h='';
+  list.forEach((b,i)=>{
+    h+=`<div style="background:var(--s2);border:1px solid var(--brd);border-radius:var(--r);
+      padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:8px">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:12px;color:var(--white);margin-bottom:2px">${b.titre}</div>
+        <div style="font-size:11px;color:var(--gray)">${b.dosage||''}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
+        ${i>0?`<button onclick="moveBloc(${i},-1)" style="background:none;border:1px solid var(--brd);
+          border-radius:4px;color:var(--gray);font-size:10px;padding:2px 5px;cursor:pointer">↑</button>`:''}
+        ${i<list.length-1?`<button onclick="moveBloc(${i},1)" style="background:none;border:1px solid var(--brd);
+          border-radius:4px;color:var(--gray);font-size:10px;padding:2px 5px;cursor:pointer">↓</button>`:''}
+        <button onclick="removeBloc(${i})" style="background:none;border:1px solid rgba(200,27,27,.2);
+          border-radius:4px;color:var(--red);font-size:10px;padding:2px 5px;cursor:pointer">✕</button>
+      </div>
+    </div>`;
+  });
+  if(h) g('builder-blocs-list').innerHTML=h;
+  else g('builder-blocs-list').innerHTML=`<div style="font-size:12px;color:var(--dim);
+    text-align:center;padding:20px 0">Ajoute des exercices depuis<br>la bibliothèque →</div>`;
+}
+
+function openBuilderPicker(){
+  _builderPickerOpen = !_builderPickerOpen;
+  const panel = g('builder-picker-panel');
+  if(panel) panel.style.display = _builderPickerOpen ? 'block' : 'none';
+  if(_builderPickerOpen) renderBuilderPicker();
+}
+
+function renderBuilderPicker(){
+  const panel = g('builder-picker-panel');
+  if(!panel) return;
+  // Category filters
+  let catH='';
+  BIBLIO_CATS.forEach(cat=>{
+    const active = cat===_builderPickerCat;
+    catH+=`<button onclick="_builderPickerCat='${cat}';renderBuilderPicker()" 
+      style="padding:3px 8px;border-radius:10px;border:1px solid ${active?'var(--red)':'var(--brd)'};
+      background:${active?'var(--red2)':'none'};color:${active?'var(--white)':'var(--gray)'};
+      font-size:9px;font-weight:700;cursor:pointer">${cat}</button>`;
+  });
+  g('builder-cat-filters').innerHTML=catH;
+  // Exercise list
+  const exos = BIBLIO_PPP.filter(e=>e.cat===_builderPickerCat);
+  let h='';
+  exos.forEach(e=>{
+    const alreadyAdded = (_builderSession.blocs||[]).some(b=>b.id===e.id);
+    h+=`<div onclick="${alreadyAdded?'':('addBiblioBloc(\''+e.id+'\')')}" 
+      style="padding:8px;border-radius:6px;margin-bottom:4px;cursor:${alreadyAdded?'default':'pointer'};
+      background:${alreadyAdded?'rgba(34,197,94,.08)':'var(--s2)'};
+      border:1px solid ${alreadyAdded?'rgba(34,197,94,.3)':'var(--brd)'};opacity:${alreadyAdded?.6:1}">
+      <div style="font-size:11px;font-weight:600;color:var(--white);line-height:1.3">${e.nom}</div>
+      <div style="font-size:10px;color:var(--gray);margin-top:1px">${e.dosage}</div>
+      ${alreadyAdded?'<div style="font-size:9px;color:var(--green);margin-top:2px">✓ Ajouté</div>':''}
+    </div>`;
+  });
+  g('builder-library-list').innerHTML=h;
+}
+
+function addBiblioBloc(id){
+  const exo = BIBLIO_PPP.find(e=>e.id===id);
+  if(!exo) return;
+  if(!_builderSession.blocs) _builderSession.blocs=[];
+  _builderSession.blocs.push({id:exo.id,titre:exo.nom,detail:exo.exec,dosage:exo.dosage,note:exo.note||''});
+  renderBuilderBlocs();
+  renderBuilderPicker();
+}
+
+function addCustomBloc(){
+  const txt = g('builder-custom-text')?.value.trim();
+  if(!txt) return;
+  if(!_builderSession.blocs) _builderSession.blocs=[];
+  _builderSession.blocs.push({id:'custom_'+Date.now(),titre:txt,detail:'',dosage:''});
+  g('builder-custom-text').value='';
+  renderBuilderBlocs();
+}
+
+function removeBloc(i){
+  _builderSession.blocs.splice(i,1);
+  renderBuilderBlocs();
+  renderBuilderPicker();
+}
+function moveBloc(i,dir){
+  const b=_builderSession.blocs;
+  const tmp=b[i]; b[i]=b[i+dir]; b[i+dir]=tmp;
+  renderBuilderBlocs();
+}
+
+async function saveCustomSeance(){
+  const nom=g('builder-nom')?.value.trim()||'Séance sans nom';
+  const duree=parseInt(g('builder-duree')?.value)||60;
+  const type=g('builder-type')?.value||'collective';
+  _builderSession.nom=nom; _builderSession.duree=duree; _builderSession.type=type;
+  _builderSession.updatedAt=new Date().toISOString();
+  _builderSession.createdBy=currentCoach?.nom||'Coach';
+  const list = await loadCustomSeances();
+  if(_builderEditIdx>=0) list[_builderEditIdx]=_builderSession;
+  else list.push(_builderSession);
+  await saveCustomSeancesToDB(list);
+  closeModal('modal-session-builder');
+  showToast(nom+' sauvegardée 💾','success');
+  coachTab('seances-custom');
+}
+
+async function deleteCustomSeance(idx){
+  if(!confirm('Supprimer cette séance ?')) return;
+  const list = await loadCustomSeances();
+  list.splice(idx,1);
+  await saveCustomSeancesToDB(list);
+  showToast('Séance supprimée','info');
+  renderCoachSeancesCustom();
+}
+
+async function addSeanceToPlanning(seanceIdx){
+  const list = await loadCustomSeances();
+  const seance = list[seanceIdx];
+  if(!seance) return;
+  // Open planning event modal pre-filled with session data
+  _editingEventIdx=-1;
+  g('mee-title').innerHTML=`Ajouter au Planning <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>`;
+  g('mee-date').value='2026-08-17';
+  g('mee-titre').value=seance.nom;
+  g('mee-type').value=seance.type||'collective';
+  g('mee-lieu').value='Gymnase';
+  g('mee-objectif').value=seance.blocs?.map(b=>b.titre).slice(0,3).join(' · ')||'';
+  g('mee-note').value=`${seance.blocs?.length||0} exercices · ${seance.duree||60} min`;
+  g('mee-delete-btn').style.display='none';
+  openModal('modal-edit-event');
 }
 
 // ══════════════════════════════════════════════════
