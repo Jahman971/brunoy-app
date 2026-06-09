@@ -581,6 +581,97 @@ const APP_VERSION   = '1.0.0';
 // ══════════════════════════════════════════════════
 // CONSTANTES
 // ══════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════
+// CATALOGUE ATELIERS COLLECTIFS (PPP Guégan + Handball)
+// ══════════════════════════════════════════════════
+const ATELIERS = {
+  cohesion_de_renfo: [
+    {titre:'Course d\'orientation en binômes', detail:'Parcourir un circuit pour trouver des lettres dispersées sur une carte. Course ensemble obligatoire.', note:'Ambiance ludique — remise en route progressive'},
+    {titre:'Dé Renfo (en binôme)', detail:'À chaque retour au point central, lancer le dé → exercice obligatoire avant de repartir.<br>🎲 1 = 10 pompes · 2 = 15 squats · 3 = 30s gainage planche · 4 = 10 fentes/jambe · 5 = 10 burpees · 6 = 20 montées genoux + 10 sauts groupés', note:'Nombre de balises + durée du circuit calés sur place'},
+  ],
+  vitesse_appuis: [
+    {titre:'Échauffement PPP Guégan', detail:'9-12 min · 3 phases : mise en train → activation → dynamique (anti-valgus)', ppp:'echauffement'},
+    {titre:'Travail de pied — Débordements', detail:'3 × 10 débordements · pleine vitesse · progression vers l\'avant 5m', note:'Focus sur la qualité des appuis et la réactivité'},
+    {titre:'Appuis en 8', detail:'4-8 × 2-4 "huit" · pleine vitesse autour de 2 marques au sol'},
+    {titre:'Fentes explosives — 6 axes', detail:'3-6 enchaînements · fentes basses et hautes explosives dans tous les axes', ppp:'pied_athletique'},
+    {titre:'Changements de direction', detail:'4 × 15m aller-retour · carioca + slalom + départs arrêtés'},
+    {titre:'Pied athlétique', detail:'3-6 × 3-6 sauts · genoux verrouillés et tendus · travail tendineux', note:'Rebonds depuis les pieds — amplitude minimale'},
+    {titre:'Nordic Curl ⭐', detail:'3 × 6 rép. · descente 4-5 secondes contrôlée', ppp:'nordic'},
+  ],
+  ppp_pliometrie: [
+    {titre:'Échauffement PPP Guégan', detail:'9-12 min · 3 phases progressives', ppp:'echauffement'},
+    {titre:'Pliométrie basse — Sauts latéraux alternés', detail:'3-4 × 20s · sauts explosifs alternés de part et d\'autre de 2 marques espacées de 1m', ppp:'pliometrie_basse'},
+    {titre:'Stabilisation après saut latéral', detail:'3-6 × 6 mouvements/côté · saut latéral explosif → stabilisation 2s genou fléchi', note:'Prévention entorse et LCA — exercice clé'},
+    {titre:'Pied athlétique', detail:'3-6 × 3-6 sauts · genoux verrouillés', ppp:'pied_athletique'},
+    {titre:'Sauts groupés', detail:'3 × 4-6 sauts · genoux-poitrine et genoux tendus alternés'},
+    {titre:'Explosivité légère — Accélérations', detail:'4-6 × 20m à 85-90% · départs variés (arrêté, décalé, dos)'},
+    {titre:'Nordic Curl ⭐', detail:'3 × 6 rép. · descente 4-5s', ppp:'nordic'},
+    {titre:'Étirements globaux', detail:'10 min · retour au calme', ppp:'etirements'},
+  ],
+  force_ppp2: [
+    {titre:'Échauffement PPP Guégan niveau 2', detail:'12 min · activation + excentrique + anti-valgus', ppp:'echauffement'},
+    {titre:'Circuit Force — 3 passages', detail:'12 squats · 10 fentes/jambe · 12 pompes · 10 hip bridges unilatéraux/jambe · 30s gainage frontal · 20s chaise murale<br>Récup 2 min entre chaque circuit'},
+    {titre:'Rotateurs externes épaule ⭐', detail:'3 × 6-8 / bras · excentrique dos au partenaire · freiner 3 secondes', ppp:'rotateurs_epaule'},
+    {titre:'Gainage latéral bras en armer', detail:'3 × 40s / côté · montées-descentes lentes du bassin', ppp:'gainage_lateral'},
+    {titre:'Nordic Curl ⭐', detail:'3 × 6 rép. · descente 4-5s', ppp:'nordic'},
+    {titre:'Proprioception genou anti-valgus', detail:'2 × 30s / jambe · unipodal + sauts stabilisés', ppp:'proprio_genou'},
+    {titre:'Handball intégré', detail:'Situation de jeu en fin de séance — 20-25 min'},
+    {titre:'Étirements globaux', detail:'10 min', ppp:'etirements'},
+  ],
+  rsa_intervalles: [
+    {titre:'Échauffement PPP Guégan', detail:'9-12 min · 3 phases progressives', ppp:'echauffement'},
+    {titre:'RSA — Repeated Sprint Ability', detail:'3-4 séries × 6 sprints 30m · récup 20s entre sprints · 3 min entre séries', note:'Reproduit l\'intermittence du match de handball'},
+    {titre:'Intervalles Zone 4', detail:'4 × 4 min à 85-90% FC max · récup 3 min active · allure soutenue'},
+    {titre:'Travail appuis défensifs', detail:'3 × 15m · déplacements latéraux + carioca + change de direction sur signal'},
+    {titre:'Fixateurs omoplates ⭐', detail:'2-3 × 6-8 mouvements avec élastique · rotation externe + rétropulsion', ppp:'fixateurs_omoplate'},
+    {titre:'Nordic Curl ⭐', detail:'3 × 6 rép. · descente 4-5s', ppp:'nordic'},
+    {titre:'Étirements globaux', detail:'10 min', ppp:'etirements'},
+  ],
+  explosivite_transitions: [
+    {titre:'Échauffement dynamique spécifique', detail:'12 min · trot progressif + éducatifs + 4 × 20m accélérations'},
+    {titre:'Pliométrie contre-haut', detail:'4-6 × 4-6 sauts bipodaux explosifs sur banc ou marche · atterrissage souple et réactif', note:'Introduction pliométrie de haute intensité'},
+    {titre:'Sauts en contrebas explosifs', detail:'3-6 × 3-6 sauts avant/arrière à partir d\'un banc · rebond explosif au sol'},
+    {titre:'Pliométrie intégrée tir — 8 et tir', detail:'5 × 4 "huit" autour de marques + tir en suspension · enchaînement immédiat', ppp:'pliometrie_basse'},
+    {titre:'Transitions défense/attaque', detail:'3 × 5 min · situations de transition rapide à haute intensité'},
+    {titre:'Handball complet', detail:'Match à thème 25-30 min · application des principes'},
+    {titre:'Nordic Curl ⭐', detail:'3 × 6 rép.', ppp:'nordic'},
+    {titre:'Étirements globaux', detail:'10 min', ppp:'etirements'},
+  ],
+  puissance_tir: [
+    {titre:'Échauffement PPP Guégan', detail:'12 min · activation + pliométrie légère', ppp:'echauffement'},
+    {titre:'Travail combiné pieds-cuisses', detail:'3-6 × fentes explosives + sauts pliométriques · enchaînement immédiat'},
+    {titre:'Pliométrie intégrée au tir — 8 et tir (v1)', detail:'5 × 4 "huit" + 1 tir en suspension · trajectoire plat/piqué', ppp:'pliometrie_basse'},
+    {titre:'Pliométrie intégrée au tir — 8 et tir (v2)', detail:'5 × 4 "huit" + 1 tir en suspension · angle et position d\'armer variés'},
+    {titre:'Lattes sautées et tir en suspension', detail:'5 × 6 sauts stabilisés + 1 tir · maintenir qualité du tir malgré fatigue'},
+    {titre:'Gainage + pliométrie + tir (à deux)', detail:'4-6 enchaînements · gainage debout soutenu → sauts arrière → tir'},
+    {titre:'Rotateurs externes épaule ⭐', detail:'3 × 6-8 / bras · récupération après effort de tir', ppp:'rotateurs_epaule'},
+    {titre:'Nordic Curl ⭐', detail:'3 × 6 rép. · descente 4-5s', ppp:'nordic'},
+    {titre:'Étirements globaux', detail:'10 min · insister sur épaules et ischiojambiers', ppp:'etirements'},
+  ],
+  activation_pre_match: [
+    {titre:'Échauffement PPP court', detail:'8 min · mobilisation étagée + activation légère'},
+    {titre:'Activation neuromusculaire', detail:'3 × 6 sauts latéraux stabilisés · 3 × 5 fentes sautées · 3 × 10 montées genoux rapides', note:'Réveiller le système nerveux sans créer de fatigue'},
+    {titre:'Sprints courts d\'activation', detail:'4-6 × 15m à 80-85% · départs variés · récup complète'},
+    {titre:'Proprioception cheville rapide', detail:'2 × 20s / jambe · unipodal', ppp:'proprio_cheville'},
+    {titre:'Rotateurs épaule courts ⭐', detail:'2 × 6 / bras · activation pré-match'},
+    {titre:'Échauffement handball type match', detail:'Situations de jeu à intensité progressive · finir avec de l\'énergie'},
+    {titre:'Étirements actifs', detail:'5 min · chaînes post., épaules · pas de statique prolongé'},
+  ],
+};
+
+// Map event themes to ateliers
+const THEME_ATELIERS = {
+  cohesion:'cohesion_de_renfo',
+  vitesse:'vitesse_appuis',
+  plio:'ppp_pliometrie',
+  force:'force_ppp2',
+  rsa:'rsa_intervalles',
+  explosivite:'explosivite_transitions',
+  puissance:'puissance_tir',
+  activation:'activation_pre_match',
+};
+
 const PHASES_DATES = {
   p1: { debut:'2026-06-15', fin:'2026-07-13', nom:'Coupure',           icon:'🏖️', couleur:'var(--blue)'   },
   p2: { debut:'2026-07-14', fin:'2026-08-14', nom:'Prépa Individuelle', icon:'🏃', couleur:'var(--red)'    },
@@ -596,16 +687,16 @@ const COULEURS_AV = ['#C81B1B','#D97706','#2563EB','#16A34A','#7C3AED','#DB2777'
 // Phase 3 collective schedule (from planning image)
 const PHASE3_SCHEDULE = [
   // PHASE 3 — Reprise Collective Volume (17-30 août)
-  {date:'2026-08-17',label:'17 Août · Lun',type:'cohesion',titre:'Séance Cohésion — Course d\'orientation + Dé Renfo',lieu:'Extérieur',objectif:'Remise en route ludique — par binômes',note:'Dé: 1=10 pompes · 2=15 squats · 3=30s gainage · 4=10 fentes/jambe · 5=10 burpees · 6=20 genoux+10 sauts'},
-  {date:'2026-08-19',label:'19 Août · Mer',type:'exterieur',titre:'Vitesse — Travail de pied & Appuis',lieu:'Gymnase',objectif:'Fentes explosives, changements direction + PPP Guégan',note:''},
-  {date:'2026-08-21',label:'21 Août · Ven',type:'collective',titre:'PPP Guégan + Pliométrie basse + Explosivité',lieu:'Gymnase',objectif:'Introduction pliométrie + PPP',note:''},
-  {date:'2026-08-22',label:'22 Août · Sam',type:'cohesion',titre:'Journée ensemble — PPP + Vitesse + Handball',lieu:'Gymnase',objectif:'Matin: PPP + vitesse · Après-midi: handball / oppositions',note:''},
-  {date:'2026-08-24',label:'24 Août · Lun',type:'collective',titre:'Force générale + Intervalles',lieu:'Gymnase',objectif:'Squats, fentes, circuit renforcement + PPP Guégan niveau 2',note:''},
-  {date:'2026-08-26',label:'26 Août · Mer',type:'collective',titre:'RSA + Appuis + Zone 4',lieu:'Gymnase + Piste si possible',objectif:'Repeated Sprint Ability, travail zone 4 + PPP Guégan',note:''},
-  {date:'2026-08-28',label:'28 Août · Ven',type:'collective',titre:'Explosivité + Pliométrie contre-haut + Handball',lieu:'Gymnase + Piste si possible',objectif:'Explosivité, transitions, handball complet',note:''},
+  {date:'2026-08-17',label:'17 Août · Lun',type:'cohesion',theme:'cohesion',titre:'Séance Cohésion — Course d\'orientation + Dé Renfo',lieu:'Extérieur',objectif:'Remise en route ludique — par binômes',note:'Dé: 1=10 pompes · 2=15 squats · 3=30s gainage · 4=10 fentes/jambe · 5=10 burpees · 6=20 genoux+10 sauts'},
+  {date:'2026-08-19',label:'19 Août · Mer',type:'exterieur',theme:'vitesse',titre:'Vitesse — Travail de pied & Appuis',lieu:'Gymnase',objectif:'Fentes explosives, changements direction + PPP Guégan',note:''},
+  {date:'2026-08-21',label:'21 Août · Ven',type:'collective',theme:'plio',titre:'PPP Guégan + Pliométrie basse + Explosivité',lieu:'Gymnase',objectif:'Introduction pliométrie + PPP',note:''},
+  {date:'2026-08-22',label:'22 Août · Sam',type:'cohesion',theme:'vitesse',titre:'Journée ensemble — PPP + Vitesse + Handball',lieu:'Gymnase',objectif:'Matin: PPP + vitesse · Après-midi: handball / oppositions',note:''},
+  {date:'2026-08-24',label:'24 Août · Lun',type:'collective',theme:'force',titre:'Force générale + Intervalles',lieu:'Gymnase',objectif:'Squats, fentes, circuit renforcement + PPP Guégan niveau 2',note:''},
+  {date:'2026-08-26',label:'26 Août · Mer',type:'collective',theme:'rsa',titre:'RSA + Appuis + Zone 4',lieu:'Gymnase + Piste si possible',objectif:'Repeated Sprint Ability, travail zone 4 + PPP Guégan',note:''},
+  {date:'2026-08-28',label:'28 Août · Ven',type:'collective',theme:'explosivite',titre:'Explosivité + Pliométrie contre-haut + Handball',lieu:'Gymnase + Piste si possible',objectif:'Explosivité, transitions, handball complet',note:''},
   {date:'2026-08-29',label:'29/30 Août',type:'match',titre:'Match Amical n°1 ou Tournoi',lieu:'Extérieur',objectif:'Premier vrai test collectif d\'opposition',note:'90 min — opposition adaptée'},
   // PHASE 4 — Intensive + Stage (31 août - 7 sept)
-  {date:'2026-08-31',label:'31 Août · Lun',type:'collective',titre:'Puissance & Intensité',lieu:'Gymnase',objectif:'Pliométrie intégrée au tir, combiné pieds-cuisses + PPP Guégan',note:''},
+  {date:'2026-08-31',label:'31 Août · Lun',type:'collective',theme:'puissance',titre:'Puissance & Intensité',lieu:'Gymnase',objectif:'Pliométrie intégrée au tir, combiné pieds-cuisses + PPP Guégan',note:''},
   {date:'2026-09-01',label:'1er Sept · Mar',type:'match',titre:'Match Amical n°2',lieu:'Extérieur',objectif:'Opposition supplémentaire — augmenter intensité',note:'90 min — adversaire bon niveau'},
   {date:'2026-09-03',label:'3 Sept · Jeu',type:'collective',titre:'Séance légère — Tactique',lieu:'Gymnase',objectif:'Jeu rapide + récupération active (pas de charge élevée)',note:'Suite amical + stage dans 2 jours'},
   {date:'2026-09-04',label:'4 Sept · Ven soir',type:'stage',titre:'Départ Stage hors Ile-de-France',lieu:'Hors ÎdF',objectif:'Arrivée + séance en soirée',note:'Repas + cohésion'},
@@ -614,7 +705,7 @@ const PHASE3_SCHEDULE = [
   // PHASE 5 — Affûtage (8-13 sept)
   {date:'2026-09-07',label:'7 Sept · Lun',type:'repos',titre:'Repos — Récupération post-stage',lieu:'—',objectif:'Pas de séance · priorité récupération',note:'Volume -40% maintien intensité'},
   {date:'2026-09-09',label:'9 Sept · Mer',type:'collective',titre:'Séance adaptée post-stage',lieu:'Gymnase',objectif:'Activation légère ou jeu à intensité réduite',note:'Contenu à définir selon état de forme'},
-  {date:'2026-09-10',label:'10 Sept · Jeu',type:'collective',titre:'Activation pré-match',lieu:'Gymnase + Piste si possible',objectif:'PPP court + activation neuromusculaire + échauffement type match',note:'Séance légère — finir avec de l\'énergie'},
+  {date:'2026-09-10',label:'10 Sept · Jeu',type:'collective',theme:'activation',titre:'Activation pré-match',lieu:'Gymnase + Piste si possible',objectif:'PPP court + activation neuromusculaire + échauffement type match',note:'Séance légère — finir avec de l\'énergie'},
   {date:'2026-09-13',label:'13 Sept · Dim',type:'match',titre:'🏆 J1 CHAMPIONNAT — R1',lieu:'À définir',objectif:'ENTRÉE EN COMPÉTITION',note:'Saison 2026-2027'},
 ];
 
@@ -1064,9 +1155,14 @@ function renderAllures(vma){
     <div class="allure-box"><div class="allure-val" style="color:var(--dim)">${a.recup}</div><div class="allure-label">Récup 58%</div><div class="allure-pace">${kmhToMinKm(a.recup)}/km</div></div>
   </div>`;
 }
-function renderPPPDetail(key){
+function renderPPPDetail(id, key){
+  if(!key) key=id; // backward compat
   const e=PPP[key];if(!e)return '';
-  return `<div class="ppp-detail" id="ppp-${key}">${e.exec}<p style="color:var(--gold);margin-top:6px"><strong>Dosage :</strong> ${e.dosage}</p><p style="color:var(--yellow)">💡 ${e.note}</p></div>`;
+  return `<div class="ppp-detail" id="ppp-${id}" style="display:none">${e.exec}<p style="color:var(--gold);margin-top:6px"><strong>Dosage :</strong> ${e.dosage}</p><p style="color:var(--yellow)">💡 ${e.note}</p></div>`;
+}
+function togglePPP(key){
+  const el=document.getElementById('ppp-'+key);
+  if(el){el.style.display=el.style.display==='none'||!el.style.display?'block':'none';}
 }
 function togglePPP(key){
   const el=g('ppp-'+key);
@@ -2310,7 +2406,7 @@ async function openEditEvent(idx){
   const e=plan[idx];
   if(!e) return;
   _editingEventIdx=idx;
-  g('mee-title').innerHTML=`Modifier l'événement <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>`;
+  g('mee-title').innerHTML=`Modifier l\'événement <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>`;
   g('mee-date').value=e.date||'';
   g('mee-titre').value=e.titre||'';
   g('mee-type').value=e.type||'collective';
