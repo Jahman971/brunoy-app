@@ -1384,7 +1384,7 @@ async function renderJoueurHome(){
   } else if(phase==='p2'){
     h+=renderPhase2Today(j, today, todayStr);
   } else if(phase==='p3'||phase==='p4'||phase==='p5'){
-    h+=renderPhase3Today(today);
+    h+=await renderPhase3Today(today);
   } else {
     h+=`<div class="card"><div class="card-title">🏆 Saison terminée</div><p style="font-size:13px;color:var(--gray)">La préparation estivale est terminée. À la prochaine saison !</p></div>`;
   }
@@ -1494,9 +1494,9 @@ function renderPhase2Today(j, today, todayStr){
   return h;
 }
 
-function renderPhase3Today(today){
+async function renderPhase3Today(today){
   const todayStr=today.toISOString().split('T')[0];
-  const plan3=_planningCache||PHASE3_SCHEDULE;
+  const plan3=_planningCache||(await getPlanning())||PHASE3_SCHEDULE;
   const event=plan3.find(e=>e.date===todayStr);
   if(event){
     const isMatch=event.type==='match', isStage=event.type==='stage';
@@ -1532,12 +1532,12 @@ function renderJoueurProgramme(){
   showProgPhase(tab);
 }
 
-function showProgPhase(phaseKey){
+async function showProgPhase(phaseKey){
   ['p1','p2','p3','p4','p5'].forEach(p=>{g('prog-tab-'+p)?.classList.toggle('active',p===phaseKey);});
   const c=g('prog-phase-content');
   if(phaseKey==='p1') c.innerHTML=renderProgP1();
-  else if(phaseKey==='p2') c.innerHTML=renderProgP2();
-  else c.innerHTML=renderProgCollective(phaseKey);
+  else if(phaseKey==='p2'){c.innerHTML=renderProgP2();setTimeout(()=>showProgWeek(getPhase2Week()),50);}
+  else {c.innerHTML='<div class="empty"><div class="empty-icon">⏳</div>Chargement...</div>';c.innerHTML=await renderProgCollective(phaseKey);}
 }
 
 function renderProgP1(){
@@ -1626,7 +1626,7 @@ async function renderProgCollective(phaseKey){
   });
   return h;
 }
-function renderProgP3(){return renderProgCollective('p3');}
+async function renderProgP3(){return renderProgCollective('p3');}
 
 // ══════════════════════════════════════════════════
 // JOUEUR — STATS
