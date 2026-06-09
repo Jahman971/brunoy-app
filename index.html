@@ -261,6 +261,9 @@ select.input-field option{background:var(--s2)}
 .sess-manage-row{display:flex;align-items:center;gap:8px;padding:8px;background:var(--s2);border-radius:var(--r);margin-bottom:6px;border:1px solid var(--brd)}
 .ctab{font-size:12px}
 
+
+.timer-effort{color:var(--red)!important}
+.timer-recup{color:var(--green)!important}
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -499,6 +502,23 @@ select.input-field option{background:var(--s2)}
     <button class="btn btn-primary" onclick="confirmCoachAddSess()">✅ Valider cette séance</button>
   </div>
 </div>
+
+<div class="overlay" id="modal-timer">
+  <div class="modal" style="text-align:center">
+    <button class="modal-close" onclick="stopTimer();closeModal('modal-timer')" style="float:right">✕</button>
+    <div id="timer-phase-label" style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;color:var(--red)">EFFORT</div>
+    <div id="timer-display" style="font-family:var(--fnt-head);font-size:80px;font-weight:900;line-height:1;color:var(--white);margin:8px 0">2:00</div>
+    <div id="timer-rep-label" style="font-size:13px;color:var(--gray);margin-bottom:20px">Bloc 1 / 6</div>
+    <div style="width:100%;height:6px;background:var(--s3);border-radius:3px;margin-bottom:20px">
+      <div id="timer-progress" style="height:100%;background:var(--red);border-radius:3px;transition:width .5s;width:0%"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" id="timer-start-btn" onclick="toggleTimer()" style="flex:1">▶️ Démarrer</button>
+      <button class="btn btn-secondary" onclick="stopTimer();closeModal('modal-timer')" style="width:auto;padding:14px 18px">↺</button>
+    </div>
+    <div style="font-size:11px;color:var(--dim);margin-top:10px">2 min effort · 1 min récupération · signal sonore à chaque changement</div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -520,9 +540,11 @@ const APP_VERSION   = '1.0.0';
 // CONSTANTES
 // ══════════════════════════════════════════════════
 const PHASES_DATES = {
-  p1: { debut: '2026-06-15', fin: '2026-07-13', nom: 'Décompression',    icon: '🏖️', couleur: 'var(--blue)'  },
-  p2: { debut: '2026-07-14', fin: '2026-08-14', nom: 'Prépa Individuelle', icon: '🏃', couleur: 'var(--red)'   },
-  p3: { debut: '2026-08-17', fin: '2026-09-13', nom: 'Reprise Collective', icon: '🤝', couleur: 'var(--green)' },
+  p1: { debut:'2026-06-15', fin:'2026-07-13', nom:'Coupure',           icon:'🏖️', couleur:'var(--blue)'   },
+  p2: { debut:'2026-07-14', fin:'2026-08-14', nom:'Prépa Individuelle', icon:'🏃', couleur:'var(--red)'    },
+  p3: { debut:'2026-08-17', fin:'2026-08-30', nom:'Reprise Collective', icon:'🤝', couleur:'var(--green)'  },
+  p4: { debut:'2026-08-31', fin:'2026-09-07', nom:'Phase Intensive',    icon:'⚡', couleur:'var(--yellow)' },
+  p5: { debut:'2026-09-08', fin:'2026-09-13', nom:'Affûtage',           icon:'🎯', couleur:'#a855f7'       },
 };
 const JOURS = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 const JOURS_LONG = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
@@ -531,25 +553,27 @@ const COULEURS_AV = ['#C81B1B','#D97706','#2563EB','#16A34A','#7C3AED','#DB2777'
 
 // Phase 3 collective schedule (from planning image)
 const PHASE3_SCHEDULE = [
-  {date:'2026-08-17',label:'17 Août · Lun',type:'collective',titre:'Reprise collective',lieu:'Gymnase',objectif:'Retrouver les bases, évaluations',note:'Séance PPP, appuis, mobilité, cohésion'},
-  {date:'2026-08-19',label:'19 Août · Mer',type:'exterieur',titre:'Extérieur — Vitesse & Appuis',lieu:'Extérieur / Piste',objectif:'Réactivité, accélérations, technique course',note:'Travail qualité avant intensité'},
-  {date:'2026-08-21',label:'21 Août · Ven',type:'collective',titre:'Séance collective',lieu:'Gymnase',objectif:'Travail technique et collectif',note:'Mise en place principes de jeu'},
-  {date:'2026-08-22',label:'22 Août · Sam',type:'cohesion',titre:'Journée Cohésion + Handball',lieu:'Gymnase',objectif:'Créer du lien, lancer la dynamique',note:'Matin: séance · Midi: repas · Après-midi: oppositions · Soir: libre'},
-  {date:'2026-08-24',label:'24 Août · Lun',type:'collective',titre:'Séance collective',lieu:'Gymnase',objectif:'Force, maîtrise gestuelle, travail des chaînes',note:'Accent renforcement général'},
-  {date:'2026-08-26',label:'26 Août · Mer',type:'exterieur',titre:'Extérieur — Vélo / Intervalles',lieu:'Extérieur',objectif:'Capacité aérobie, appuis spécifiques',note:'Travail intermittent'},
-  {date:'2026-08-28',label:'28 Août · Ven',type:'collective',titre:'Séance collective',lieu:'Gymnase',objectif:'Travail tactique et collectif',note:'Mise en place systèmes'},
-  {date:'2026-08-29',label:'29 Août · Sam',type:'match',titre:'Match Amical n°1',lieu:'Extérieur',objectif:'Première opposition — retrouver les repères',note:'90 min — opposition adaptée'},
-  {date:'2026-08-31',label:'31 Août · Lun',type:'collective',titre:'Séance collective',lieu:'Gymnase',objectif:'Développement puissance et intensité',note:'Travail explosivité'},
-  {date:'2026-09-01',label:'1er Sept · Mar',type:'match',titre:'Match Amical n°2 (en semaine)',lieu:'Extérieur',objectif:'Opposition supplémentaire — augmenter intensité',note:'90 min — adversaire bon niveau'},
-  {date:'2026-09-02',label:'2 Sept · Mer',type:'collective',titre:'Séance collective',lieu:'Gymnase',objectif:'Collectif, transitions, situations de jeu',note:'Répétitions haute intensité'},
-  {date:'2026-09-04',label:'4 Sept · Ven',type:'collective',titre:'Séance collective',lieu:'Gymnase',objectif:'Affinage, réglages',note:'Dernière grosse charge'},
-  {date:'2026-09-05',label:'5 Sept · Ven (stage)',type:'stage',titre:'Stage — Départ',lieu:'Hors ÎdF',objectif:'Départ fin d\'après-midi — Séance en soirée',note:'Repas + temps de cohésion'},
-  {date:'2026-09-06',label:'6 Sept · Sam (stage)',type:'stage',titre:'Stage — Jour 2',lieu:'Hors ÎdF',objectif:'Matin: séance — Après-midi: oppositions',note:'Soirée cohésion'},
-  {date:'2026-09-07',label:'7 Sept · Dim (stage)',type:'stage',titre:'Stage — Retour',lieu:'Hors ÎdF',objectif:'Matin: séance/opposition — Retour en fin d\'après-midi',note:''},
-  {date:'2026-09-08',label:'8 Sept · Lun',type:'collective',titre:'Séance collective',lieu:'Gymnase',objectif:'Activation, travail tactique',note:'Séance de reprise après stage'},
-  {date:'2026-09-10',label:'10 Sept · Mer',type:'collective',titre:'Séance collective',lieu:'Gymnase',objectif:'Intensité courte, mise en rythme',note:'Séance d\'affûtage'},
-  {date:'2026-09-12',label:'12 Sept · Ven',type:'collective',titre:'Mise en route + réglages',lieu:'Gymnase',objectif:'Préparation J1, aspects spécifiques',note:'Séance légère'},
-  {date:'2026-09-12',label:'12/13 Sept',type:'match',titre:'🏆 J1 CHAMPIONNAT',lieu:'À définir',objectif:'ENTRÉE EN COMPÉTITION',note:'Pré-Nationale ÎdF'},
+  // PHASE 3 — Reprise Collective Volume (17-30 août)
+  {date:'2026-08-17',label:'17 Août · Lun',type:'cohesion',titre:'Séance Cohésion — Course d'orientation + Dé Renfo',lieu:'Gymnase',objectif:'Remise en route ludique — par binômes',note:'Dé: 1=10 pompes · 2=15 squats · 3=30s gainage · 4=10 fentes/jambe · 5=10 burpees · 6=20 genoux+10 sauts'},
+  {date:'2026-08-19',label:'19 Août · Mer',type:'exterieur',titre:'Vitesse — Travail de pied & Appuis',lieu:'Extérieur / Piste',objectif:'Fentes explosives, changements direction + PPP Guégan',note:''},
+  {date:'2026-08-21',label:'21 Août · Ven',type:'collective',titre:'PPP Guégan + Pliométrie basse + Explosivité',lieu:'Gymnase',objectif:'Introduction pliométrie + PPP',note:''},
+  {date:'2026-08-22',label:'22 Août · Sam',type:'cohesion',titre:'Journée ensemble — PPP + Vitesse + Handball',lieu:'Gymnase',objectif:'Matin: PPP + vitesse · Après-midi: handball / oppositions',note:''},
+  {date:'2026-08-24',label:'24 Août · Lun',type:'collective',titre:'Force générale + Intervalles',lieu:'Gymnase',objectif:'Squats, fentes, circuit renforcement + PPP Guégan niveau 2',note:''},
+  {date:'2026-08-26',label:'26 Août · Mer',type:'exterieur',titre:'RSA + Appuis + Zone 4',lieu:'Extérieur',objectif:'Repeated Sprint Ability, travail zone 4 + PPP Guégan',note:''},
+  {date:'2026-08-28',label:'28 Août · Ven',type:'collective',titre:'Explosivité + Pliométrie contre-haut + Handball',lieu:'Gymnase',objectif:'Explosivité, transitions, handball complet',note:''},
+  {date:'2026-08-29',label:'29/30 Août',type:'match',titre:'Match Amical n°1 ou Tournoi',lieu:'Extérieur',objectif:'Premier vrai test collectif d'opposition',note:'90 min — opposition adaptée'},
+  // PHASE 4 — Intensive + Stage (31 août - 7 sept)
+  {date:'2026-08-31',label:'31 Août · Lun',type:'collective',titre:'Puissance & Intensité',lieu:'Gymnase',objectif:'Pliométrie intégrée au tir, combiné pieds-cuisses + PPP Guégan',note:''},
+  {date:'2026-09-01',label:'1er Sept · Mar',type:'match',titre:'Match Amical n°2',lieu:'Extérieur',objectif:'Opposition supplémentaire — augmenter intensité',note:'90 min — adversaire bon niveau'},
+  {date:'2026-09-03',label:'3 Sept · Mer',type:'collective',titre:'Séance légère — Tactique',lieu:'Gymnase',objectif:'Jeu rapide + récupération active (pas de charge élevée)',note:'Suite amical + stage dans 2 jours'},
+  {date:'2026-09-05',label:'5 Sept · Ven soir',type:'stage',titre:'Départ Stage hors Île-de-France',lieu:'Hors ÎdF',objectif:'Arrivée + séance en soirée',note:'Repas + cohésion'},
+  {date:'2026-09-06',label:'6 Sept · Sam',type:'stage',titre:'Stage — Jour 2',lieu:'Hors ÎdF',objectif:'Cohésion + projet de jeu + leadership',note:'Amical n°3 ou tournoi'},
+  {date:'2026-09-07',label:'7 Sept · Dim',type:'stage',titre:'Stage — Retour',lieu:'Hors ÎdF',objectif:'Matin: dernière séance · Après-midi: retour',note:''},
+  // PHASE 5 — Affûtage (8-13 sept)
+  {date:'2026-09-08',label:'8 Sept · Lun',type:'repos',titre:'Repos — Récupération post-stage',lieu:'—',objectif:'Pas de séance · priorité récupération',note:'Volume -40% maintien intensité'},
+  {date:'2026-09-09',label:'9 Sept · Mar',type:'collective',titre:'Séance adaptée post-stage',lieu:'Gymnase',objectif:'Activation légère ou jeu à intensité réduite',note:'Contenu à définir selon état de forme'},
+  {date:'2026-09-11',label:'11 Sept · Jeu',type:'collective',titre:'Activation pré-match',lieu:'Gymnase',objectif:'PPP court + activation neuromusculaire + échauffement type match',note:'Séance légère — finir avec de l'énergie'},
+  {date:'2026-09-13',label:'13 Sept · Dim',type:'match',titre:'🏆 J1 CHAMPIONNAT — R1',lieu:'À définir',objectif:'ENTRÉE EN COMPÉTITION',note:'Saison 2026-2027'},
 ];
 
 // ══════════════════════════════════════════════════
@@ -648,14 +672,33 @@ function kmhToMinKm(v){if(!v)return '--';const t=60/v;const m=Math.floor(t);cons
 function getNiveau(vma){if(vma<13)return 'Débutant';if(vma<15)return 'Intermédiaire';if(vma<17)return 'Confirmé';return 'Avancé';}
 function getNiveauNum(vma){if(vma<13)return 0;if(vma<15)return 1;if(vma<17)return 2;return 3;}
 
+// Groupes A/B/C basés sur VMA Luc Léger
+function getGroupe(vma){if(vma>=16.5)return 'A';if(vma>=14)return 'B';return 'C';}
+function getGroupeLabel(vma){
+  const g=getGroupe(vma);
+  if(g==='A')return {g:'A',label:'Groupe A — Avancé',col:'#a855f7'};
+  if(g==='B')return {g:'B',label:'Groupe B — Intermédiaire',col:'var(--blue)'};
+  return {g:'C',label:'Groupe C — À développer',col:'var(--green)'};
+}
+
+// Protocole cardio IFT 2'/1' adapté au Luc Léger
+const CARDIO_PROTO = [
+  {sem:'S1',reps:6,  pct:{C:.70,B:.75,A:.80}, vol:'Faible'},
+  {sem:'S2',reps:8,  pct:{C:.72,B:.77,A:.82}, vol:'Modéré'},
+  {sem:'S3',reps:10, pct:{C:.75,B:.80,A:.85}, vol:'Élevé'},
+  {sem:'S4',reps:12, pct:{C:.75,B:.82,A:.87}, vol:'Élevé'},
+  {sem:'S5',reps:8,  pct:{C:.65,B:.68,A:.70}, vol:'Décharge'},
+];
+
 // ══════════════════════════════════════════════════
 // PHASE HELPERS
 // ══════════════════════════════════════════════════
 function getPhaseActuelle(date=new Date()){
   const d=date.toISOString().split('T')[0];
-  if(d>=PHASES_DATES.p1.debut && d<=PHASES_DATES.p1.fin) return 'p1';
-  if(d>=PHASES_DATES.p2.debut && d<=PHASES_DATES.p2.fin) return 'p2';
-  if(d>=PHASES_DATES.p3.debut && d<=PHASES_DATES.p3.fin) return 'p3';
+  for(const key of ['p1','p2','p3','p4','p5']){
+    const p=PHASES_DATES[key];
+    if(d>=p.debut&&d<=p.fin) return key;
+  }
   if(d<PHASES_DATES.p1.debut) return 'avant';
   return 'apres';
 }
@@ -674,6 +717,61 @@ function formatDate(d){return new Date(d).toLocaleDateString('fr-FR',{weekday:'s
 // ══════════════════════════════════════════════════
 // SESSION GENERATORS — PHASE 2
 // ══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════
+// TIMER 2'/1'
+// ══════════════════════════════════════════════════
+let _timerInterval=null, _timerSec=0, _timerRep=0, _timerTotalReps=0, _timerPhase='effort', _timerRunning=false;
+const _timerCtx = window.AudioContext ? new AudioContext() : null;
+function _beep(freq=880, dur=0.15){
+  if(!_timerCtx) return;
+  try{const o=_timerCtx.createOscillator(),g=_timerCtx.createGain();o.connect(g);g.connect(_timerCtx.destination);o.frequency.value=freq;g.gain.setValueAtTime(.3,_timerCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,_timerCtx.currentTime+dur);o.start();o.stop(_timerCtx.currentTime+dur);}catch(e){}
+}
+function openTimerModal(reps, speed_kmh){
+  _timerTotalReps=reps; _timerRep=1; _timerPhase='effort'; _timerSec=120; _timerRunning=false;
+  window._timerSpeed=speed_kmh;
+  updateTimerDisplay();
+  g('timer-start-btn').textContent='▶️ Démarrer';
+  openModal('modal-timer');
+}
+function toggleTimer(){
+  if(_timerRunning){_timerRunning=false;clearInterval(_timerInterval);g('timer-start-btn').textContent='▶️ Reprendre';}
+  else{_timerRunning=true;g('timer-start-btn').textContent='⏸ Pause';_timerInterval=setInterval(timerTick,1000);}
+}
+function stopTimer(){clearInterval(_timerInterval);_timerRunning=false;}
+function timerTick(){
+  _timerSec--;
+  if(_timerSec<=0){
+    if(_timerPhase==='effort'){
+      _beep(660,.1);_beep(660,.1);
+      _timerPhase='recup';_timerSec=60;
+    } else {
+      if(_timerRep>=_timerTotalReps){
+        _beep(880,.2);_beep(1100,.3);
+        clearInterval(_timerInterval);_timerRunning=false;
+        g('timer-phase-label').textContent='TERMINÉ ! 🎉';
+        g('timer-display').textContent='0:00';
+        g('timer-start-btn').textContent='✅ Fini';
+        return;
+      }
+      _beep(440,.15);
+      _timerRep++;_timerPhase='effort';_timerSec=120;
+    }
+  }
+  updateTimerDisplay();
+}
+function updateTimerDisplay(){
+  const m=Math.floor(_timerSec/60), s=_timerSec%60;
+  g('timer-display').textContent=m+':'+(s<10?'0':'')+s;
+  const isEffort=_timerPhase==='effort';
+  g('timer-phase-label').textContent=isEffort?`EFFORT — ${window._timerSpeed||'—'} km/h`:'RÉCUPÉRATION';
+  g('timer-phase-label').className=isEffort?'timer-effort':'timer-recup';
+  g('timer-rep-label').textContent=`Bloc ${_timerRep} / ${_timerTotalReps}`;
+  const total=isEffort?120:60;
+  const pct=Math.round((1-_timerSec/total)*100);
+  g('timer-progress').style.width=pct+'%';
+  g('timer-progress').style.background=isEffort?'var(--red)':'var(--green)';
+}
+
 // ══ HELPERS MATÉRIEL ══
 function hasMat(j,t){const m=j.materiel||[];if(t==='salle')return m.includes('Salle de muscu');if(t==='elast')return m.includes('Élastiques')||m.includes('Salle de muscu');return true;}
 function mTag(t){
@@ -683,158 +781,105 @@ function mTag(t){
 }
 
 function genSessionA(weekIdx, joueur){
-  const vma=joueur.vma||13, a=getAllures(vma), nn=getNiveauNum(vma);
+  const vma=joueur.vma||13, a=getAllures(vma);
   const phases=['Fondation','Construction I','Construction II','Intensification','Affûtage'];
   const ph=phases[weekIdx]||'Fondation';
-  const hasSalle=hasMat(joueur,'salle');
-  let titre, cardioBloc, tags=['cardio','ppp'];
+  const gr=getGroupe(vma), gl=getGroupeLabel(vma);
+  const proto=CARDIO_PROTO[weekIdx]||CARDIO_PROTO[0];
+  const pct=proto.pct[gr], reps=proto.reps, speed=Math.round(vma*pct*10)/10;
+  const pace=kmhToMinKm(speed);
+  const tags=['cardio','ppp'];
+  if(weekIdx>=2) tags.push('vma');
 
-  if(weekIdx===0){
-    const dur=nn===0?25:nn===1?30:35;
-    titre='PPP + Endurance Fondamentale';
-    cardioBloc={titre:'Endurance fondamentale'+mTag('none'),detail:`${dur} min footing continu à <strong>${a.fond} km/h</strong> (${kmhToMinKm(a.fond)}/km)`,note:'Allure conversation — tu dois pouvoir parler'};
-  } else if(weekIdx===1){
-    const ser=nn<=1?2:3;
-    titre='PPP + Seuil Aérobie';
-    cardioBloc={titre:'Fractionné long — Seuil'+mTag('none'),detail:`${ser} × 8 min à <strong>${a.seuil} km/h</strong> · Récup 3 min à ${a.recup} km/h`,note:'Souffle difficile mais tu peux encore parler'};
-  } else if(weekIdx===2){
-    const reps=nn===0?10:nn===1?14:nn===2?16:20;
-    titre='PPP + VMA 30/30'; tags.push('vma');
-    cardioBloc={titre:'30/30 — Puissance aérobie'+mTag('none'),detail:`${reps} rép. × 30s à <strong>${a.vma100} km/h</strong> / 30s récup à ${a.recup} km/h`,note:'Intensité élevée sur les 30s actives'};
-  } else if(weekIdx===3){
-    const reps=nn===0?12:nn===1?16:nn===2?18:22;
-    titre='PPP + VMA Intensifié'; tags.push('vma');
-    cardioBloc={titre:'30/30 — Haute intensité'+mTag('none'),detail:`${reps} rép. × 30s à <strong>${a.puissance} km/h</strong> / 30s récup`,note:'Effort maximal sur les 30s actives'};
-  } else {
-    titre='PPP + Activation Légère';
-    cardioBloc={titre:'Footing activation'+mTag('none'),detail:`20-25 min à <strong>${a.fond} km/h</strong> + 4 × 30m accélérations`,note:'Séance légère — prépare la reprise collective'};
-  }
+  // Allure récup (footing lent entre blocs)
+  const speedRecup=Math.round(vma*.60*10)/10;
 
-  const nordicDetail=hasSalle
+  const cardioBloc={
+    titre:`Cardio intermittent — ${proto.vol}`,
+    detail:`<strong>${reps} × 2 min</strong> à <strong>${speed} km/h</strong> (${pace}/km) · Récup 1 min à ${speedRecup} km/h entre chaque bloc`,
+    note:`Groupe ${gr} · ${Math.round(pct*100)}% VMA — <span style="color:var(--blue);cursor:pointer;font-weight:600" onclick="openTimerModal(${reps},${speed})">⏱️ Lancer le minuteur 2'/1'</span>`,
+    timer:{reps, speed}
+  };
+
+  const nordicDetail=hasMat(joueur,'salle')
     ?'3 × 6 rép. · talons sous la barre · descente 4-5s contrôlée'
-    :'3 × 6 rép. · talons fixés par un partenaire ou sous un meuble · descente 4-5s';
+    :'3 × 6 rép. · talons fixés partenaire ou meuble · descente 4-5s';
 
   return {
-    titre, obligatoire:true, tags, type:'PPP + Cardio', phase:ph, semaine:weekIdx+1,
+    titre:`PPP + Cardio Intermittent ${proto.sem}`,
+    obligatoire:true, tags, type:'PPP + Cardio', phase:ph, semaine:weekIdx+1,
+    groupe:gl,
     blocs:[
-      {id:'ech',titre:'Échauffement PPP Guégan'+mTag('none'),detail:'9-12 min · 3 phases progressives',ppp:'echauffement'},
+      {id:'ech',titre:'Échauffement PPP Guégan'+mTag('none'),
+       detail:'9-12 min · 3 phases progressives<br>• Mise en train (3 min) : mobilisation étagée bas vers haut<br>• Activation (4 min) : rythme + excentrique léger<br>• Dynamique (4 min) : vitesse max, anti-valgus',
+       ppp:'echauffement'},
       cardioBloc,
-      {id:'nordic',titre:'Nordic Curl ⭐'+mTag(hasSalle?'salle':'none'),detail:nordicDetail,ppp:'nordic'},
-      {id:'proprio',titre:'Proprioception Cheville'+mTag('none'),detail:'2 × 30s / jambe · unipodal yeux ouverts puis fermés',ppp:'proprio_cheville'},
-      {id:'etir',titre:'Étirements globaux'+mTag('none'),detail:'8-10 min · chaînes post., épaules, hanches',ppp:'etirements'},
+      {id:'nordic',titre:'Nordic Curl ⭐'+mTag(hasMat(joueur,'salle')?'salle':'none'),detail:nordicDetail,ppp:'nordic'},
+      {id:'proprio_chev',titre:'Proprioception Cheville'+mTag('none'),
+       detail:'• Équilibre unipodal : 3 × 30s/pied (yeux ouverts → fermés)<br>• Sauts + réception stabilisée : 3 × 8/pied · stabiliser 2-3s',
+       ppp:'proprio_cheville'},
+      {id:'etir',titre:'Étirements globaux'+mTag('none'),detail:'8-10 min · chaînes post., épaules, hanches, quadriceps',ppp:'etirements'},
     ]
   };
 }
 
 function genSessionB(weekIdx, joueur){
   const vma=joueur.vma||13, nn=getNiveauNum(vma);
-  const poste=joueur.poste||'';
   const phases=['Fondation','Construction I','Construction II','Intensification','Affûtage'];
   const ph=phases[weekIdx]||'Fondation';
   const tags=['force','ppp'];
   const hasSalle=hasMat(joueur,'salle'), hasElast=hasMat(joueur,'elast');
-  const isGardien=poste.includes('Gardien'), isPivot=poste.includes('Pivot')||poste.includes('Demi');
-  let titre, seancePrinc;
+  const isGardien=joueur.poste?.includes('Gardien'), isPivot=joueur.poste?.includes('Pivot')||joueur.poste?.includes('Demi');
+  let titre, circuitBlocs, nbCircuits;
 
+  // Circuit de base (PDF S2) — adapté au matériel et au niveau
   if(weekIdx===0){
-    titre='Force de Base + Anti-Blessure';
-    if(hasSalle){
-      seancePrinc=[
-        {titre:'Squat barre'+mTag('salle'),detail:`4 × ${8+nn*2} rép. · descente 3s · charge adaptée`,note:'Priorité technique — genoux dans l'axe'},
-        {titre:'Développé couché'+mTag('salle'),detail:`3 × ${8+nn*2} rép. · tempo contrôlé`,note:isGardien?'Associer dissociation coude':''},
-        {titre:'Tirage horizontal (rowing)'+mTag('salle'),detail:`3 × 10 rép. · omoplate engagée`,note:'Fondamental pour la chaîne post.'},
-        {titre:'Fentes avec haltères'+mTag('salle'),detail:`3 × 8 / jambe`,note:isPivot?'Priorité ancrage au sol':''},
-      ];
-    } else if(hasElast){
-      seancePrinc=[
-        {titre:'Squats poids du corps'+mTag('none'),detail:`${3+nn} × ${12+nn*2} rép. · descente 3s, montée explosive`,note:'Genoux dans l'axe'},
-        {titre:'Fentes alternées'+mTag('none'),detail:`3 × 10 / jambe`,note:''},
-        {titre:'Pompes'+mTag('none'),detail:`3 × ${8+nn*4} rép.`,note:isGardien?'Dissociation coude-poignet':''},
-        {titre:'Déplacements latéraux — élastique'+mTag('elast'),detail:`2 × 10 / côté · élastique aux genoux · bas du corps actif`,note:''},
-      ];
-    } else {
-      seancePrinc=[
-        {titre:'Squats poids du corps'+mTag('none'),detail:`${3+nn} × ${12+nn*2} rép. · descente 3s, montée explosive`,note:'Genoux dans l'axe'},
-        {titre:'Fentes alternées'+mTag('none'),detail:`3 × 10 / jambe`,note:''},
-        {titre:'Pompes'+mTag('none'),detail:`3 × ${8+nn*4} rép.`,note:isGardien?'Dissociation coude-poignet':''},
-        {titre:'Chaise murale isométrique'+mTag('none'),detail:`3 × 45s · dos au mur · genoux 90°`,note:''},
-      ];
-    }
+    titre='Circuit Renfo + PPP — Fondation';
+    nbCircuits=hasSalle?4:3;
+    circuitBlocs=[
+      {titre:`Circuit ${nbCircuits} × (60-75s récup entre exercices)`+mTag('none'),
+       detail:`${hasSalle?'<strong>12 squats barre légère</strong>':'<strong>12 squats poids du corps</strong>'} · ${hasSalle?'<strong>10 fentes haltères/jambe</strong>':'<strong>10 fentes/jambe</strong>'} · <strong>12 pompes</strong> · <strong>10 hip bridges unipodaux/jambe</strong> · <strong>30s gainage frontal</strong> · <strong>20s chaise murale</strong>`,
+       note:`Récup 2 min entre chaque circuit · ${nbCircuits} passages complets`},
+    ];
   } else if(weekIdx<=2){
-    titre='Renforcement Handball + Anti-Blessure';
-    if(hasSalle){
-      seancePrinc=[
-        {titre:'Squat sauté leste léger'+mTag('salle'),detail:`3 × 8 · 10-20kg · atterrissage souple genoux dans l'axe`,note:''},
-        {titre:'Fentes bulgares haltères'+mTag('salle'),detail:`3 × 8 / jambe · pied arrière sur banc`,note:isPivot?'Priorité ancrage':''},
-        {titre:'Soulevé de terre roumain'+mTag('salle'),detail:`3 × 10 · protection ischiojambiers`,note:'Parfait complément Nordic Curl'},
-        {titre:'Rowing unilatéral haltère'+mTag('salle'),detail:`3 × 10 / bras`,note:''},
-      ];
-    } else if(hasElast){
-      seancePrinc=[
-        {titre:'Squats sautés'+mTag('none'),detail:`3 × 8-10 · explosif à la montée, atterrissage souple`,note:'Genoux dans l'axe'},
-        {titre:'Fentes sautées'+mTag('none'),detail:`3 × 6 / jambe`,note:''},
-        {titre:'Renfo abducteurs — élastique'+mTag('elast'),detail:`3 × 10 / côté · élastique aux genoux · déplacements latéraux`,note:isPivot?'Priorité adducteurs':''},
-        {titre:'Pompes claquées'+mTag('none'),detail:`3 × 6 · explosif à la poussée`,note:''},
-      ];
-    } else {
-      seancePrinc=[
-        {titre:'Squats sautés'+mTag('none'),detail:`3 × 8-10 · explosif à la montée`,note:'Genoux dans l'axe'},
-        {titre:'Fentes sautées'+mTag('none'),detail:`3 × 6 / jambe`,note:''},
-        {titre:'Pistol squat assisté'+mTag('none'),detail:`3 × 5 / jambe · appui mur ou chaise`,note:'Progression vers le pistol complet'},
-        {titre:'Pompes claquées'+mTag('none'),detail:`3 × 6`,note:''},
-      ];
-    }
+    titre='Circuit Renfo Intensifié + PPP';
+    nbCircuits=hasSalle?4:3;
+    const squat=hasSalle?'12 squats sautés lestés légers':'12 squats sautés';
+    const lunge=hasSalle?'10 fentes bulgares/jambe':'10 fentes sautées/jambe';
+    circuitBlocs=[
+      {titre:`Circuit ${nbCircuits} × (45s récup entre exercices)`+mTag(hasSalle?'salle':'none'),
+       detail:`<strong>${squat}</strong> · <strong>${lunge}</strong> · <strong>12 pompes claquées</strong> · <strong>10 hip bridges explosifs/jambe</strong> · <strong>30s gainage latéral/côté</strong> · <strong>20s chaise murale</strong>`,
+       note:`Récup 90s entre chaque circuit · Intensité progressive`},
+    ];
   } else {
-    titre='Renforcement Intensifié + Anti-Blessure';
-    if(hasSalle){
-      seancePrinc=[
-        {titre:'Squat lourd'+mTag('salle'),detail:`4 × 5 · charge max contrôlée · 3 min récup`,note:'Séance de force max — technique prioritaire'},
-        {titre:'Fentes bulgares lestées'+mTag('salle'),detail:`4 × 6 / jambe`,note:''},
-        {titre:'Développé militaire'+mTag('salle'),detail:`3 × 8 · épaules stabilisées`,note:''},
-        {titre:'Traction / Lat Machine'+mTag('salle'),detail:`3 × 8-10`,note:''},
-      ];
-    } else if(hasElast){
-      seancePrinc=[
-        {titre:'Squats bulgares'+mTag('none'),detail:`4 × 8 / jambe · pied arrière surélevé`,note:''},
-        {titre:'Fentes explosives 6 axes'+mTag('none'),detail:`3-6 enchaînements`,note:''},
-        {titre:'Gainage dynamique + résistance élastique'+mTag('elast'),detail:`3 × 30s · chaînes croisées avec élastique`,note:''},
-        {titre:'Pompes archer'+mTag('none'),detail:`3 × 5 / côté · pompe quasi-unilatérale`,note:''},
-      ];
-    } else {
-      seancePrinc=[
-        {titre:'Squats bulgares'+mTag('none'),detail:`4 × 8 / jambe · pied arrière surélevé`,note:''},
-        {titre:'Fentes explosives 6 axes'+mTag('none'),detail:`3-6 enchaînements`,note:''},
-        {titre:'Pistol squat'+mTag('none'),detail:`3 × 5 / jambe`,note:''},
-        {titre:'Pompes archer'+mTag('none'),detail:`3 × 5 / côté`,note:''},
-      ];
-    }
+    titre='Circuit Renfo Peak + PPP';
+    nbCircuits=hasSalle?5:4;
+    const squat=hasSalle?'8 squats lourds':'10 squats bulgares/jambe';
+    circuitBlocs=[
+      {titre:`Circuit ${nbCircuits} × (30s récup entre exercices)`+mTag(hasSalle?'salle':'none'),
+       detail:`<strong>${squat}</strong> · <strong>8 fentes explosives/jambe</strong> · <strong>10 pompes archer</strong> · <strong>10 hip bridges unilatéraux/jambe</strong> · <strong>30s gainage dynamique</strong>`,
+       note:`Récup 2 min entre circuits · Dernière grosse charge force`},
+    ];
   }
 
-  const fixatDetail=hasElast
-    ?'2-3 × 6-8 · rotation externe + rétropulsion avec élastique'
-    :'2-3 × 6-8 pompes bras tendus · mobilisation omoplates (sans élastique)';
-  const rotDetail=hasElast
-    ?'3 × 6-8 / bras · coude au corps · freiner le retour lentement avec élastique'
-    :'3 × 6-8 / bras · excentrique dos au partenaire · freiner 3 secondes';
-  const propGenou=hasElast
-    ?'2 × 30s / jambe · unipodal + abduction genou contre élastique'
-    :'2 × 30s / jambe · unipodal genou fléchi · résister au valgus (sans élastique)';
-  const nordicDetail=hasSalle
-    ?'3 × 6 · talons sous la barre · descente 4-5s'
-    :'3 × 6 · talons fixés partenaire ou meuble · descente 4-5s';
+  const fixatDetail=hasElast?'2-3 × 6-8 · rotation externe + rétropulsion avec élastique':'2-3 × 6-8 pompes bras tendus · mobilisation omoplates';
+  const rotDetail=hasElast?'3 × 15 / sens · coude au corps · freiner retour lentement':'3 × 6-8 / bras · excentrique dos au partenaire · freiner 3 secondes';
+  const nordicDetail=hasSalle?'3 × 6 · talons sous barre · descente 4-5s':'3 × 6 · talons fixés partenaire ou meuble · descente 4-5s';
   const matLvl=hasSalle?'salle':hasElast?'elast':'none';
 
   return {
     titre, obligatoire:true, tags, type:'Force + Anti-Blessure', phase:ph, semaine:weekIdx+1,
     blocs:[
-      {id:'ech_art',titre:'Échauffement articulaire'+mTag('none'),detail:'8 min · épaules, hanches, chevilles, genoux'},
+      {id:'ech_art',titre:'Échauffement articulaire'+mTag('none'),detail:'8 min · épaules, hanches, chevilles, genoux + 3 × 10 squats légers'},
+      ...circuitBlocs,
+      {id:'ppp_genou',titre:'PPP Genou'+mTag('none'),
+       detail:'• Squat unipodal (chaise) : 3 × 8/jambe · alignement genou-pied<br>• Fentes contrôlées : 3 × 10/jambe · descente 3s · genou aligné<br>• Hip bridge unipodal : 3 × 10/jambe · tenir 2s en haut',
+       ppp:'proprio_genou'},
       {id:'fixateurs',titre:'Fixateurs d'Omoplates ⭐'+mTag(hasElast?'elast':'none'),detail:fixatDetail,ppp:'fixateurs_omoplate'},
-      ...seancePrinc,
       {id:'rotateurs',titre:'Rotateurs Ext. Épaule ⭐'+mTag(hasElast?'elast':'none'),detail:rotDetail,ppp:'rotateurs_epaule'},
-      {id:'gainage_lat',titre:'Gainage Latéral Bras Armer'+mTag('none'),detail:'3 × 40s / côté · montées-descentes lentes du bassin',ppp:'gainage_lateral'},
-      {id:'gainage_sol',titre:'Gainage Chaînes Croisées'+mTag('none'),detail:'3 × 5 / diagonale · extension simultanée bras + jambe opposés',ppp:'gainage_plank'},
+      {id:'gainage',titre:'Gainage Tronc'+mTag('none'),
+       detail:'• Planche frontale : 3 × 40s<br>• Planche latérale : 3 × 30s/côté<br>• Planche dynamique : toucher épaule opposée, 3 × 20 · bassin fixe'},
       {id:'nordic',titre:'Nordic Curl ⭐'+mTag(matLvl),detail:nordicDetail,ppp:'nordic'},
-      {id:'proprio_g',titre:'Proprioception Genou Anti-Valgus'+mTag(hasElast?'elast':'none'),detail:propGenou,ppp:'proprio_genou'},
       {id:'etir',titre:'Étirements globaux'+mTag('none'),detail:'8-10 min systématiques',ppp:'etirements'},
     ]
   };
@@ -1296,7 +1341,7 @@ async function renderJoueurHome(){
     h+=renderPhase1Content();
   } else if(phase==='p2'){
     h+=renderPhase2Today(j, today, todayStr);
-  } else if(phase==='p3'){
+  } else if(phase==='p3'||phase==='p4'||phase==='p5'){
     h+=renderPhase3Today(today);
   } else {
     h+=`<div class="card"><div class="card-title">🏆 Saison terminée</div><p style="font-size:13px;color:var(--gray)">La préparation estivale est terminée. À la prochaine saison !</p></div>`;
@@ -1319,21 +1364,25 @@ async function renderJoueurHome(){
 
 function renderPhaseTimeline(phaseActuelle){
   const segs=[
-    {key:'p1',label:'P1',name:'Déco.',color:'var(--blue)'},
-    {key:'p2',label:'P2',name:'Prépa Ind.',color:'var(--red)'},
-    {key:'p3',label:'P3',name:'Reprise',color:'var(--green)'},
+    {key:'p1',label:'1',name:'Coupure',    color:'var(--blue)'},
+    {key:'p2',label:'2',name:'Individuel', color:'var(--red)'},
+    {key:'p3',label:'3',name:'Collective', color:'var(--green)'},
+    {key:'p4',label:'4',name:'Intensif',   color:'var(--yellow)'},
+    {key:'p5',label:'5',name:'Affûtage',   color:'#a855f7'},
   ];
-  let html='<div class="phase-bar">';
+  const keys=['p1','p2','p3','p4','p5'];
+  const curIdx=keys.indexOf(phaseActuelle);
+  let html='<div class="phase-bar" style="padding:8px 10px">';
   segs.forEach((s,i)=>{
-    const state=s.key===phaseActuelle?'current':(s.key<phaseActuelle?'done':'upcoming');
-    const col=state==='current'?s.color:state==='done'?'var(--green)':'var(--dim)';
-    html+=`<div class="phase-seg">
-      <div class="phase-seg-inner ${state}" style="${state==='current'?'border-color:'+s.color+';background:'+s.color.replace('var(',''  ).replace(')','')+'22':''}">
-        <span class="phase-seg-label" style="color:${col}">${s.label}</span>
-        <span class="phase-seg-name" style="color:${state==='current'?'var(--white)':'var(--gray)'}">${s.name}</span>
+    const isCur=s.key===phaseActuelle, isDone=curIdx>i&&curIdx>=0;
+    const state=isCur?'current':isDone?'done':'upcoming';
+    const col=isCur?s.color:isDone?'var(--green)':'var(--dim)';
+    html+=`<div class="phase-seg" style="flex:1">
+      <div class="phase-seg-inner ${state}" style="${isCur?'border-color:'+s.color+';background:rgba(200,27,27,.1)':''}">
+        <span class="phase-seg-label" style="color:${col}">${s.name}</span>
       </div>
     </div>`;
-    if(i<segs.length-1) html+=`<div class="phase-sep">›</div>`;
+    if(i<segs.length-1) html+=`<div class="phase-sep" style="font-size:10px">›</div>`;
   });
   return html+'</div>';
 }
@@ -1372,6 +1421,7 @@ function renderPhase2Today(j, today, todayStr){
         <div class="today-eyebrow">🔥 ${session.obligatoire?'SÉANCE DU JOUR':'SÉANCE FACULTATIVE DU JOUR'}</div>
         <div class="today-title">${session.titre}</div>
         <div class="today-meta">${JOURS_LONG[today.getDay()]} · ${wl.phase} · ${wl.label}</div>
+        ${sdj.session.groupe?`<div style="margin-bottom:4px"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(59,130,246,.15);color:#60a5fa">${sdj.session.groupe.label}</span></div>`:''}
         <div style="margin-bottom:12px">${renderTags(session.tags)}</div>
         <div style="margin-bottom:12px">${blocs}</div>
         <button class="btn btn-primary" onclick="ouvrirRPE('${todayStr}',${weekIdx},${idx})">✅ J'ai fait cette séance !</button>
@@ -1390,10 +1440,13 @@ function renderPhase2Today(j, today, todayStr){
     // Show next session
     const weekIdx=getPhase2Week();
     const wl=getPhase2WeemLabel(weekIdx);
+    const grInfo=getGroupeLabel(j.vma||13);
     h+=`<div class="card card-red" style="cursor:pointer" onclick="showJoueurPage('programme')">
       <div class="card-title">📅 Programme Semaine ${weekIdx+1}</div>
       <div style="font-size:12px;color:var(--gray)">${wl.phase} · ${wl.label}</div>
-      <div style="font-size:13px;color:var(--light);margin-top:6px">3 séances disponibles → voir le programme complet</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+        <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(59,130,246,.2);color:#60a5fa">${grInfo.label}</span>
+      </div>
     </div>`;
   }
   return h;
@@ -1424,8 +1477,9 @@ function renderJoueurProgramme(){
   const phase=getPhaseActuelle();
   let h=`<div class="sec-title">Mon <span class="accent">Programme</span></div>`;
   // Phase tabs
-  h+=`<div style="display:flex;gap:6px;margin-bottom:14px">
-    ${['p1','p2','p3'].map(p=>`<button onclick="showProgPhase('${p}')" id="prog-tab-${p}" class="week-pill ${phase===p?'active':''}" style="flex:1;text-align:center">${PHASES_DATES[p].icon} ${p.toUpperCase()}</button>`).join('')}
+  const allPhases=['p1','p2','p3','p4','p5'];
+  h+=`<div style="display:flex;gap:5px;margin-bottom:14px;overflow-x:auto">
+    ${allPhases.map(p=>`<button onclick="showProgPhase('${p}')" id="prog-tab-${p}" class="week-pill ${phase===p?'active':''}" style="flex:1;text-align:center;min-width:0;font-size:11px;padding:6px 4px">${PHASES_DATES[p].icon} P${p[1]}</button>`).join('')}
   </div>`;
   h+=`<div id="prog-phase-content"></div>`;
   g('joueur-page-programme').innerHTML=h;
@@ -1436,11 +1490,11 @@ function renderJoueurProgramme(){
 }
 
 function showProgPhase(phaseKey){
-  ['p1','p2','p3'].forEach(p=>{g('prog-tab-'+p)?.classList.toggle('active',p===phaseKey);});
+  ['p1','p2','p3','p4','p5'].forEach(p=>{g('prog-tab-'+p)?.classList.toggle('active',p===phaseKey);});
   const c=g('prog-phase-content');
   if(phaseKey==='p1') c.innerHTML=renderProgP1();
   else if(phaseKey==='p2') c.innerHTML=renderProgP2();
-  else c.innerHTML=renderProgP3();
+  else c.innerHTML=renderProgCollective(phaseKey);
 }
 
 function renderProgP1(){
@@ -1498,22 +1552,37 @@ function showProgWeek(weekIdx){
 
 function toggleWeekDetail(id){const el=g(id);if(el){el.style.display=el.style.display==='none'?'block':'none';}}
 
-function renderProgP3(){
-  let h=`<div class="sec-sub" style="margin-bottom:8px">17 août → 12/13 septembre · 11 séances collectives · 3 matchs · 1 stage</div>`;
-  PHASE3_SCHEDULE.forEach(e=>{
+function renderProgCollective(phaseKey){
+  const phaseFilters = {
+    p3:['2026-08-17','2026-08-30'],
+    p4:['2026-08-31','2026-09-07'],
+    p5:['2026-09-08','2026-09-13']
+  };
+  const [from,to]=phaseFilters[phaseKey]||['',''];
+  const ph=PHASES_DATES[phaseKey];
+  const filtered=PHASE3_SCHEDULE.filter(e=>e.date>=from&&e.date<=to);
+  const phaseDesc={
+    p3:'Reprise Collective — 17 → 30 août · 2 semaines · Volume & Cohésion',
+    p4:'Phase Intensive + Stage — 31 août → 7 sept. · Puissance & Stage hors ÎdF',
+    p5:'Affûtage — 8 → 13 sept. · Semaine championnat',
+  };
+  let h=`<div style="font-size:12px;color:var(--gray);margin-bottom:12px">${phaseDesc[phaseKey]||''}</div>`;
+  if(!filtered.length){h+=`<div class="empty"><div class="empty-icon">${ph.icon}</div>Détail à venir</div>`;return h;}
+  filtered.forEach(e=>{
     const isMatch=e.type==='match', isStage=e.type==='stage', isChamp=e.titre.includes('CHAMPIONNAT');
     const cls=isMatch||isChamp?'phase3-match':isStage?'phase3-stage':'';
     h+=`<div class="phase3-row ${cls}">
       <div class="phase3-date">${e.label}</div>
       <div class="phase3-info">
         <div class="phase3-type">${e.titre}</div>
-        <div class="phase3-meta">${e.lieu}${e.objectif?` · ${e.objectif}`:''}</div>
+        <div class="phase3-meta">${e.lieu}${e.objectif?' · '+e.objectif:''}</div>
         ${e.note?`<div style="font-size:10px;color:var(--dim);margin-top:2px">${e.note}</div>`:''}
       </div>
     </div>`;
   });
   return h;
 }
+function renderProgP3(){return renderProgCollective('p3');}
 
 // ══════════════════════════════════════════════════
 // JOUEUR — STATS
