@@ -1019,7 +1019,8 @@ const OB_STEPS = [
       const age=g('ob-age')?.value, t=g('ob-taille')?.value, p=g('ob-poids')?.value;
       if(!age){showToast('Entre ton âge','error');return false;}
       Object.assign(obData,{age:+age,taille:+t||0,poids:+p||0});
-      if(!obData.materiel?.length) obData.materiel=['Aucun équipement'];
+      // Si aucun matériel sélectionné, défaut à "Aucun équipement"
+      if(!obData.materiel||obData.materiel.length===0) obData.materiel=['Aucun équipement'];
       return true;
     }
   },
@@ -1036,6 +1037,9 @@ const OB_STEPS = [
       <div class="warn-box" style="margin-top:12px">Pas encore fait le test ? Entre une estimation : 12 km/h débutant · 14 km/h moyen · 16 km/h confirmé</div>`;
     },
     validate(){
+      // Capturer la valeur directe du champ si le joueur n'a pas utilisé preview
+      const directVal=parseFloat(g('ob-vma-direct')?.value);
+      if(directVal&&directVal>=8) obData.vma=directVal;
       const vma=obData.vma;
       if(!vma||vma<8){showToast('Renseigne ta VMA','error');return false;}
       return true;
@@ -1089,7 +1093,9 @@ const OB_STEPS = [
 
 function startOnboarding(){
   obStep=0;
-  if(!obData.prenom&&currentJoueur?.prenom) obData={...currentJoueur};
+  // Toujours recharger depuis currentJoueur pour avoir les données à jour
+  if(currentJoueur) obData={...currentJoueur};
+  else if(!obData.prenom) obData={};
   renderObStep();
   showScreen('onboarding');
 }
@@ -1147,11 +1153,18 @@ function previewVMADirect(){
 async function finishOnboarding(){
   const joueur={...currentJoueur,...obData};
   if(!joueur.seances_validees) joueur.seances_validees=[];
-  currentJoueur=joueur;
   showToast('Sauvegarde…','info');
-  await sbSaveJoueur(joueur);
-  showToast('Profil enregistré ! 💪','success');
+  const ok=await sbSaveJoueur(joueur);
+  if(!ok) return;
+  // Recharger depuis Supabase pour garantir la cohérence
+  const fresh=await sbGetJoueur(joueur.code);
+  currentJoueur=fresh||joueur;
+  showToast('Profil mis à jour ! 💪','success');
   showScreen('joueur');
+  // Mettre à jour le header
+  const av=g('j-header-av');
+  if(av){av.textContent=(currentJoueur.prenom[0]+(currentJoueur.nom?currentJoueur.nom[0]:'')).toUpperCase();av.style.background=couleurPourCode(currentJoueur.code);}
+  if(g('j-header-name')) g('j-header-name').textContent=currentJoueur.prenom+' · '+currentJoueur.poste;
   renderJoueurHome();
 }
 
@@ -1349,6 +1362,7 @@ function renderPhase3Today(today){
 // ══════════════════════════════════════════════════
 function renderJoueurProgramme(){
   if(!currentJoueur)return;
+  const j=currentJoueur; // utiliser les données fraîches
   const phase=getPhaseActuelle();
   let h=`<div class="sec-title">Mon <span class="accent">Programme</span></div>`;
   // Phase tabs
