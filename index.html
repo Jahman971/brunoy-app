@@ -385,6 +385,19 @@ select.input-field option{background:var(--s2)}
   </div>
 </div>
 
+
+<div class="overlay" id="modal-badges">
+  <div class="modal">
+    <div class="modal-title">🏅 Mes Badges<button class="modal-close" onclick="closeModal('modal-badges')">✕</button></div>
+    <div id="badges-content"></div>
+  </div>
+</div>
+
+<div id="badge-unlock" style="display:none;position:fixed;top:calc(20px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);z-index:300;background:linear-gradient(135deg,#1a0a0a,#2a0a0a);border:2px solid var(--red);border-radius:14px;padding:14px 20px;text-align:center;min-width:220px;box-shadow:0 8px 32px rgba(200,27,27,.3)">
+  <div id="badge-unlock-icon" style="font-size:40px;line-height:1;margin-bottom:6px"></div>
+  <div style="font-family:var(--fnt-head);font-size:16px;font-weight:900;color:var(--red);letter-spacing:1px;text-transform:uppercase">Badge débloqué !</div>
+  <div id="badge-unlock-name" style="font-size:14px;font-weight:600;color:var(--white);margin-top:3px"></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -740,8 +753,10 @@ async function sbGetJoueur(code){
   catch(e){return null;}
 }
 async function sbSaveJoueur(j){
-  try{if(!sb)return;await sb.from('joueurs').upsert({code:j.code,data:j,updated_at:new Date().toISOString()},{onConflict:'code'});}
-  catch(e){console.warn('sbSaveJoueur',e);}
+  if(!sb){showToast('Erreur: Supabase non connecté','error');return false;}
+  const {error}=await sb.from('joueurs').upsert({code:j.code,data:j,updated_at:new Date().toISOString()},{onConflict:'code'});
+  if(error){showToast('Erreur Supabase: '+error.message,'error');console.error(error);return false;}
+  return true;
 }
 async function sbGetMeta(key,def=null){
   try{if(!sb)return def;const{data}=await sb.from('meta').select('value').eq('key',key).single();return data?.value??def;}
@@ -1045,6 +1060,8 @@ async function renderJoueurHome(){
 
   // Stats rapides
   if(j.seances_validees?.length){
+    const earnedB=(j.badges||[]);
+    if(earnedB.length) h+=`<div class="card" style="cursor:pointer;padding:10px 14px" onclick="openBadges()"><div style="display:flex;align-items:center;justify-content:space-between"><div style="font-size:12px;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.5px">🏅 Badges</div><div style="font-size:11px;color:var(--red)">${earnedB.length}/${BADGES.length} →</div></div><div style="margin-top:6px;font-size:22px">${BADGES.filter(b=>earnedB.includes(b.id)).map(b=>b.icon).join(' ')}</div></div>`;
     if(stats.serie>=3) h+=`<div class="streak-card"><span style="font-size:28px">🔥</span><div><strong>${stats.serie} séances consécutives !</strong><div style="font-size:12px;color:var(--gray)">Continue comme ça !</div></div></div>`;
     h+=`<div class="stats-row">
       <div class="stat-box" style="border-top:2px solid var(--red)"><div class="stat-val val-red">${stats.total}</div><div class="stat-lbl">Séances</div></div>
@@ -1309,8 +1326,13 @@ function renderJoueurProfil(){
       <div class="row-between"><span class="text-gray">Jours d'entraînement</span><strong>${jrs||'—'}</strong></div>
       <div class="row-between"><span class="text-gray">Matériel</span><strong>${(j.materiel||[]).join(', ')||'—'}</strong></div>
     </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="openBadges()">🏅 Mes Badges <span id="badge-count-profil" style="color:var(--red)"></span></button>
+    </div>
     <button class="btn btn-ghost" onclick="startOnboarding()">✏️ Modifier mon profil</button>
     <button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="deconnexion()">Se déconnecter</button>`;
+  const earned=(currentJoueur?.badges||[]).length;
+  if(earned>0){const el=g('badge-count-profil');if(el)el.textContent='('+earned+'/'+BADGES.length+')';}
 }
 
 function deconnexion(){currentJoueur=null;g('login-code').value='';showScreen('landing');}
@@ -1318,6 +1340,68 @@ function deconnexion(){currentJoueur=null;g('login-code').value='';showScreen('l
 // ══════════════════════════════════════════════════
 // RPE + VALIDATION
 // ══════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════
+// BADGES
+// ══════════════════════════════════════════════════
+const BADGES = [
+  {id:'first',    icon:'🎯', name:'Premier pas',     desc:'Valider ta 1ère séance',              check:j=>seancesVal(j)>=1},
+  {id:'s3',       icon:'🔥', name:'En feu',           desc:'3 séances validées',                  check:j=>seancesVal(j)>=3},
+  {id:'s5',       icon:'💪', name:'Machine',          desc:'5 séances validées',                  check:j=>seancesVal(j)>=5},
+  {id:'s10',      icon:'🏆', name:'Guerrier',         desc:'10 séances validées',                 check:j=>seancesVal(j)>=10},
+  {id:'s20',      icon:'👑', name:'Roi de la prépa',  desc:'20 séances validées',                 check:j=>seancesVal(j)>=20},
+  {id:'perfect',  icon:'⭐', name:'Semaine parfaite', desc:'3 séances en une même semaine',        check:j=>{const b={};(j.seances_validees||[]).filter(s=>!s.missed).forEach(s=>b[s.weekIdx]=(b[s.weekIdx]||0)+1);return Object.values(b).some(v=>v>=3);}},
+  {id:'streak5',  icon:'🔑', name:'Régularité',       desc:'5 séances consécutives sans manquer', check:j=>{let st=0,mx=0;[...(j.seances_validees||[])].sort((a,b)=>a.ts-b.ts).forEach(s=>{if(!s.missed){st++;mx=Math.max(mx,st);}else st=0;});return mx>=5;}},
+  {id:'easy',     icon:'😎', name:'Easy rider',       desc:'3 séances RPE ≤ 4',                   check:j=>(j.seances_validees||[]).filter(s=>s.rpe&&s.rpe<=4).length>=3},
+  {id:'beast',    icon:'🥵', name:'La Bête',          desc:'3 séances RPE ≥ 9',                   check:j=>(j.seances_validees||[]).filter(s=>s.rpe&&s.rpe>=9).length>=3},
+  {id:'pioneer',  icon:'🌅', name:'Pionnier',         desc:'Valider une séance dès la semaine 1',  check:j=>(j.seances_validees||[]).some(s=>!s.missed&&s.weekIdx===0)},
+  {id:'comeback', icon:'🦅', name:'Le Retour',        desc:'Revenir après une séance manquée',     check:j=>{const s=[...(j.seances_validees||[])].sort((a,b)=>a.ts-b.ts);for(let i=1;i<s.length;i++)if(s[i-1].missed&&!s[i].missed)return true;return false;}},
+  {id:'cardio5',  icon:'🫀', name:'Cardio King',      desc:'5 séances PPP + Cardio validées',      check:j=>(j.seances_validees||[]).filter(s=>!s.missed&&s.sessionIdx===0).length>=5},
+  {id:'force5',   icon:'🛡️', name:'PPP Pro',          desc:'5 séances Force + Anti-blessure',     check:j=>(j.seances_validees||[]).filter(s=>!s.missed&&s.sessionIdx===1).length>=5},
+  {id:'vitesse3', icon:'⚡', name:'Vitesse',          desc:'3 séances Vitesse (facultatives)',      check:j=>(j.seances_validees||[]).filter(s=>!s.missed&&s.sessionIdx===2).length>=3},
+  {id:'all3',     icon:'🎖️', name:'Complet',          desc:'Les 3 types de séances en 1 semaine',  check:j=>{const w={};(j.seances_validees||[]).filter(s=>!s.missed).forEach(s=>{if(!w[s.weekIdx])w[s.weekIdx]=new Set();w[s.weekIdx].add(s.sessionIdx);});return Object.values(w).some(s=>s.size>=3);}},
+];
+
+function seancesVal(j){return (j.seances_validees||[]).filter(s=>!s.missed).length;}
+
+function checkBadges(j){
+  const earned=j.badges||[], newB=[];
+  BADGES.forEach(b=>{if(!earned.includes(b.id)&&b.check(j)){earned.push(b.id);newB.push(b);}});
+  if(newB.length){
+    j.badges=earned;
+    sbSaveJoueur(j);
+    newB.forEach((b,k)=>setTimeout(()=>showBadgeUnlock(b),k*2500));
+  }
+}
+
+function showBadgeUnlock(b){
+  const el=g('badge-unlock');
+  g('badge-unlock-icon').textContent=b.icon;
+  g('badge-unlock-name').textContent=b.name;
+  el.style.display='block';
+  el.style.animation='none';
+  setTimeout(()=>el.style.animation='',10);
+  clearTimeout(window._btt);
+  window._btt=setTimeout(()=>el.style.display='none',3500);
+}
+
+function openBadges(){
+  if(!currentJoueur)return;
+  const earned=currentJoueur.badges||[];
+  const nb=earned.length;
+  let h=`<div style="text-align:center;margin-bottom:16px"><span style="font-family:var(--fnt-head);font-size:32px;font-weight:900;color:var(--red)">${nb}</span><span style="font-size:13px;color:var(--gray)"> / ${BADGES.length} badges</span></div>`;
+  BADGES.forEach(b=>{
+    const has=earned.includes(b.id);
+    h+=`<div style="display:flex;align-items:center;gap:12px;padding:10px;border-radius:var(--r);margin-bottom:6px;background:var(--s2);border:1px solid ${has?'rgba(200,27,27,.3)':'var(--brd)'};opacity:${has?1:.4}">
+      <span style="font-size:26px;width:36px;text-align:center">${b.icon}</span>
+      <div style="flex:1"><div style="font-weight:700;font-size:13px;color:${has?'var(--white)':'var(--gray)'}">${b.name}</div><div style="font-size:11px;color:var(--gray)">${b.desc}</div></div>
+      ${has?'<span style="color:var(--green);font-size:16px">✓</span>':''}
+    </div>`;
+  });
+  g('badges-content').innerHTML=h;
+  openModal('modal-badges');
+}
+
 const RPE_FEELINGS=['Très facile 😌','Facile 🙂','Modéré 😐','Un peu dur 😤','Dur 😓','Dur 😓','Très dur 🥵','Très dur 🥵','Extrême 🤯','Maximum 💀'];
 
 function ouvrirRPE(date, weekIdx, sessionIdx){
@@ -1344,6 +1428,7 @@ async function validerSeance(){
   closeModal('modal-rpe');
   showToast('Séance validée ! 💪','success');
   await sbSaveJoueur(currentJoueur);
+  checkBadges(currentJoueur);
   renderJoueurHome();
 }
 async function marquerManquee(date,weekIdx,sessionIdx){
@@ -1433,7 +1518,8 @@ async function addPlayer(){
   const exist=await sbGetJoueur(code);
   if(exist){showToast('Code déjà utilisé — change-le','error');return;}
   const joueur={code,prenom,nom,poste,seances_validees:[],created_at:new Date().toISOString()};
-  await sbSaveJoueur(joueur);
+  const ok=await sbSaveJoueur(joueur);
+  if(!ok) return;
   closeModal('modal-add-player');
   showToast(`${prenom} ajouté · Code: ${code} 🎉`,'success');
   g('np-prenom').value=''; g('np-nom').value=''; g('np-code').value='';
