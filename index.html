@@ -1169,7 +1169,7 @@ async function sbGetJoueurs(){
   catch(e){console.warn('sbGetJoueurs',e);return [];}
 }
 async function sbGetJoueur(code){
-  try{if(!sb)return null;const{data}=await sb.from('joueurs').select('code,data').eq('code',code).single();return data?{...data.data,code:data.code}:null;}
+  try{if(!sb)return null;const{data}=await sb.from('joueurs').select('code,data').eq('code',code).maybeSingle();return data?{...data.data,code:data.code}:null;}
   catch(e){return null;}
 }
 async function sbSaveJoueur(j){
@@ -1179,7 +1179,7 @@ async function sbSaveJoueur(j){
   return true;
 }
 async function sbGetMeta(key,def=null){
-  try{if(!sb)return def;const{data}=await sb.from('meta').select('value').eq('key',key).single();return data?.value??def;}
+  try{if(!sb)return def;const{data}=await sb.from('meta').select('value').eq('key',key).maybeSingle();return data?.value??def;}
   catch(e){return def;}
 }
 async function sbSaveMeta(key,value){
@@ -2834,7 +2834,7 @@ let _builderPickerOpen = false;
 async function loadCustomSeances(){
   if(!sb) return [];
   try{
-    const {data,error}=await sb.from('meta').select('value').eq('key','seances_custom').single();
+    const {data,error}=await sb.from('meta').select('value').eq('key','seances_custom').maybeSingle();
     if(error||!data) return [];
     return Array.isArray(data.value)?data.value:[];
   }catch(e){return [];}
