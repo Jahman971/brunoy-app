@@ -2832,13 +2832,25 @@ let _builderPickerCat = 'Chevilles';
 let _builderPickerOpen = false;
 
 async function loadCustomSeances(){
-  return await sbGetMeta('seances_custom', []);
+  if(!sb) return [];
+  try{
+    const {data,error}=await sb.from('meta').select('value').eq('key','seances_custom').single();
+    if(error||!data) return [];
+    return Array.isArray(data.value)?data.value:[];
+  }catch(e){return [];}
 }
 async function saveCustomSeancesToDB(list){
-  await sbSaveMeta('seances_custom', list);
+  if(!sb){showToast('Erreur : Supabase non connecté','error');return false;}
+  const {error}=await sb.from('meta').upsert(
+    {key:'seances_custom',value:list,updated_at:new Date().toISOString()},
+    {onConflict:'key'}
+  );
+  if(error){showToast('Erreur sauvegarde: '+error.message,'error');console.error(error);return false;}
+  return true;
 }
 
 async function renderCoachSeancesCustom(){
+  g('coach-content').innerHTML='<div class="empty"><div class="empty-icon">⏳</div>Chargement...</div>';
   const list = await loadCustomSeances();
   let h = `<button class="btn btn-primary btn-sm" style="margin-bottom:14px" 
     onclick="openSessionBuilder(-1)">+ Nouvelle séance</button>`;
@@ -2962,7 +2974,7 @@ function addBiblioBloc(id){
   const exo = BIBLIO_PPP.find(e=>e.id===id);
   if(!exo) return;
   if(!_builderSession.blocs) _builderSession.blocs=[];
-  _builderSession.blocs.push({id:exo.id,titre:exo.nom,detail:exo.exec,dosage:exo.dosage,note:exo.note||''});
+  _builderSession.blocs.push({id:exo.id,titre:exo.nom,dosage:exo.dosage,note:exo.note||''});
   renderBuilderBlocs();
   renderBuilderPicker();
 }
@@ -2997,10 +3009,11 @@ async function saveCustomSeance(){
   const list = await loadCustomSeances();
   if(_builderEditIdx>=0) list[_builderEditIdx]=_builderSession;
   else list.push(_builderSession);
-  await saveCustomSeancesToDB(list);
+  const ok = await saveCustomSeancesToDB(list);
+  if(!ok) return;
   closeModal('modal-session-builder');
   showToast(nom+' sauvegardée 💾','success');
-  coachTab('seances-custom');
+  await renderCoachSeancesCustom();
 }
 
 async function deleteCustomSeance(idx){
