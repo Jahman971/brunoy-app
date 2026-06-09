@@ -1541,7 +1541,33 @@ async function renderJoueurHome(){
 
   // Contenu selon la phase
   if(phase==='avant'){
-    h+=`<div class="card card-gold"><div class="card-title">🗓️ La prépa commence bientôt !</div><p style="font-size:13px;color:var(--light);line-height:1.7">Phase 1 (Décompression) démarre le <strong>15 juin</strong>. Profite de cette période pour récupérer et te préparer mentalement.</p></div>`;
+    const debut=new Date('2026-06-15'), diff=Math.ceil((debut-today)/86400000);
+    const grI=getGroupeLabel(j.vma||13);
+    h+=`<div class="card card-gold">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="text-align:center;flex-shrink:0">
+          <div style="font-family:var(--fnt-head);font-size:42px;font-weight:900;color:var(--yellow);line-height:1">${diff}</div>
+          <div style="font-size:10px;color:var(--gray);text-transform:uppercase;letter-spacing:1px">jours</div>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:3px">La prépa commence bientôt !</div>
+          <div style="font-size:12px;color:var(--gray);line-height:1.6">Phase 1 démarre le <strong>15 juin</strong>. Profite pour récupérer.</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="showJoueurPage('programme')">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:2px">📅 Voir mon programme</div>
+          <div style="font-size:12px;color:var(--gray)">Consulte les séances de la Prépa Individuelle</div>
+        </div>
+        <span style="color:var(--red);font-size:20px">→</span>
+      </div>
+    </div>
+    <div class="card card-red">
+      <div class="card-title">Mon Groupe — ${grI.label}</div>
+      ${renderAllures(j.vma||13)}
+    </div>`;
   } else if(phase==='p1'){
     h+=renderPhase1Content();
   } else if(phase==='p2'){
@@ -2432,15 +2458,16 @@ async function savePlanning(plan){
 async function renderCoachPlanning(){
   const plan = await getPlanning();
   const phases = {
-    p3:{label:'Phase 3 — Reprise Collective (17→30 août)',  from:'2026-08-17',to:'2026-08-30'},
-    p4:{label:'Phase 4 — Intensive + Stage (31 août→7 sept)',from:'2026-08-31',to:'2026-09-07'},
-    p5:{label:'Phase 5 — Affûtage (8→13 sept)',             from:'2026-09-08',to:'2026-09-13'},
+    pre:{label:'Pré-saison (avant le 17 août)',             from:'2000-01-01',to:'2026-08-16',col:'var(--blue)'},
+    p3: {label:'Phase 3 — Reprise Collective (17→30 août)', from:'2026-08-17',to:'2026-08-30',col:'var(--green)'},
+    p4: {label:'Phase 4 — Intensive + Stage (31 août→7 sept)',from:'2026-08-31',to:'2026-09-07',col:'var(--yellow)'},
+    p5: {label:'Phase 5 — Affûtage (8→13 sept)',            from:'2026-09-08',to:'2026-09-13',col:'#a855f7'},
   };
   let h=`<button class="btn btn-primary btn-sm" style="margin-bottom:14px" onclick="openNewEvent()">+ Ajouter un événement</button>`;
   for(const [key,ph] of Object.entries(phases)){
     const events=plan.filter(e=>e.date>=ph.from&&e.date<=ph.to).sort((a,b)=>a.date.localeCompare(b.date));
-    h+=`<div style="font-family:var(--fnt-head);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${key==='p3'?'var(--green)':key==='p4'?'var(--yellow)':'#a855f7'};margin:14px 0 8px">${ph.label}</div>`;
-    if(!events.length){h+=`<div style="font-size:12px;color:var(--dim);margin-bottom:8px">Aucun événement</div>`;}
+    if(!events.length) continue;
+    h+=`<div style="font-family:var(--fnt-head);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${ph.col};margin:14px 0 8px">${ph.label}</div>`;
     events.forEach((e,i)=>{
       const globalIdx=plan.indexOf(e);
       const typeIcon={'collective':'🏐','exterieur':'🏃','match':'⚽','stage':'🏕️','cohesion':'🤝','repos':'😴'}[e.type]||'📅';
@@ -2460,7 +2487,7 @@ async function renderCoachPlanning(){
 function openNewEvent(){
   _editingEventIdx=-1;
   g('mee-title').innerHTML=`Nouvel événement <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>`;
-  g('mee-date').value='2026-08-17';
+  g('mee-date').value=new Date().toISOString().split('T')[0];
   g('mee-titre').value='';
   g('mee-type').value='collective';
   g('mee-lieu').value='Gymnase';
@@ -3032,7 +3059,7 @@ async function addSeanceToPlanning(seanceIdx){
   // Open planning event modal pre-filled with session data
   _editingEventIdx=-1;
   g('mee-title').innerHTML=`Ajouter au Planning <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>`;
-  g('mee-date').value='2026-08-17';
+  g('mee-date').value=new Date().toISOString().split('T')[0];
   g('mee-titre').value=seance.nom;
   g('mee-type').value=seance.type||'collective';
   g('mee-lieu').value='Gymnase';
