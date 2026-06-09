@@ -233,6 +233,34 @@ select.input-field option{background:var(--s2)}
 .toast.error{border-color:rgba(200,27,27,.4);color:var(--red)}
 .toast.info{border-color:rgba(59,130,246,.4);color:#60a5fa}
 
+
+.wg-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.wg-table{width:100%;border-collapse:collapse;font-size:12px;min-width:360px}
+.wg-table th{background:var(--s3);padding:8px 5px;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--gray);border:1px solid var(--brd);text-align:center;white-space:nowrap}
+.wg-table td{border:1px solid var(--brd);text-align:center;padding:7px 4px;vertical-align:middle}
+.wg-name{text-align:left!important;padding:6px 10px!important;font-weight:600;white-space:nowrap;background:var(--s2)}
+.wg-done{background:rgba(34,197,94,.12);cursor:pointer}
+.wg-missed{background:rgba(200,27,27,.07)}
+.wg-empty{background:var(--s2);cursor:pointer}
+.wg-empty:active{background:var(--s3)}
+.sp{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:none}
+.sp-actif{background:rgba(34,197,94,.12);color:var(--green)}
+.sp-blesse{background:rgba(200,27,27,.12);color:var(--red)}
+.sp-vacances{background:rgba(245,158,11,.12);color:var(--yellow)}
+.sp-suspendu{background:rgba(107,114,128,.12);color:var(--gray)}
+.sp.inactive{opacity:.4}
+.alert-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--r);margin-bottom:6px;cursor:pointer}
+.msg-indiv{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.25);border-radius:var(--rL);padding:12px;margin-bottom:12px}
+.msg-indiv-from{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#60a5fa;margin-bottom:4px}
+.bar-chart{display:flex;align-items:flex-end;gap:5px;height:72px;margin:8px 0 2px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.bar-fill{width:100%;border-radius:3px 3px 0 0;background:var(--red);opacity:.75;min-height:3px}
+.bar-lbl{font-size:9px;color:var(--dim)}
+.bar-pct{font-size:9px;color:var(--gray)}
+.traine-row{display:flex;align-items:center;gap:8px;padding:9px;background:var(--s2);border:1px solid var(--brd);border-radius:6px;margin-bottom:5px;cursor:pointer}
+.sess-manage-row{display:flex;align-items:center;gap:8px;padding:8px;background:var(--s2);border-radius:var(--r);margin-bottom:6px;border:1px solid var(--brd)}
+.ctab{font-size:12px}
+
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -323,7 +351,8 @@ select.input-field option{background:var(--s2)}
   </div>
   <div class="coach-tabs">
     <button class="ctab active" id="ctab-joueurs" onclick="coachTab('joueurs')">Joueurs</button>
-    <button class="ctab" id="ctab-stats" onclick="coachTab('stats')">Équipe</button>
+    <button class="ctab" id="ctab-semaine" onclick="coachTab('semaine')">Semaine</button>
+    <button class="ctab" id="ctab-stats" onclick="coachTab('stats')">Stats</button>
     <button class="ctab" id="ctab-annonce" onclick="coachTab('annonce')">Message</button>
   </div>
   <div class="coach-content" id="coach-content"></div>
@@ -397,6 +426,42 @@ select.input-field option{background:var(--s2)}
   <div id="badge-unlock-icon" style="font-size:40px;line-height:1;margin-bottom:6px"></div>
   <div style="font-family:var(--fnt-head);font-size:16px;font-weight:900;color:var(--red);letter-spacing:1px;text-transform:uppercase">Badge débloqué !</div>
   <div id="badge-unlock-name" style="font-size:14px;font-weight:600;color:var(--white);margin-top:3px"></div>
+</div>
+
+<div class="overlay" id="modal-manage-player">
+  <div class="modal" style="max-height:88vh;overflow-y:auto;padding-bottom:calc(20px + var(--safe-b))">
+    <div class="modal-title" id="mmp-title">Joueur <button class="modal-close" onclick="closeModal('modal-manage-player')">✕</button></div>
+    <div id="mmp-content"></div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-coach-add-sess">
+  <div class="modal">
+    <div class="modal-title">Valider une séance <button class="modal-close" onclick="closeModal('modal-coach-add-sess')">✕</button></div>
+    <div id="mcas-info" style="font-size:13px;color:var(--gray);margin-bottom:10px"></div>
+    <div class="input-group">
+      <label class="input-label">Semaine</label>
+      <select class="input-field" id="mcas-week">
+        <option value="0">S1 · 14-20 Juil — Fondation</option>
+        <option value="1">S2 · 21-27 Juil — Construction I</option>
+        <option value="2">S3 · 28 Juil-3 Août — Construction II</option>
+        <option value="3">S4 · 4-10 Août — Intensification</option>
+        <option value="4">S5 · 11-14 Août — Affûtage</option>
+      </select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Séance</label>
+      <select class="input-field" id="mcas-sess">
+        <option value="0">S1 — PPP + Cardio</option>
+        <option value="1">S2 — Force + Anti-blessure</option>
+        <option value="2">S3 — Vitesse (facultatif)</option>
+      </select>
+    </div>
+    <div class="input-label" style="margin-bottom:6px">RPE ressenti</div>
+    <div class="rpe-grid" id="mcas-rpe-grid"></div>
+    <div id="mcas-rpe-feel" style="text-align:center;font-size:12px;color:var(--gray);min-height:18px;margin-bottom:12px"></div>
+    <button class="btn btn-primary" onclick="confirmCoachAddSess()">✅ Valider cette séance</button>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -1035,6 +1100,8 @@ async function renderJoueurHome(){
   // Annonce coach
   const annonce=await sbGetMeta('annonce',null);
   if(annonce?.text) h+=`<div class="annonce-card"><div class="annonce-from">📢 Message du Coach</div><div class="annonce-text">${annonce.text}</div><div style="font-size:10px;color:var(--dim);margin-top:4px">${formatDate(annonce.date)}</div></div>`;
+  // Message individuel
+  if(j.message_coach?.text) h+=`<div class="msg-indiv"><div class="msg-indiv-from">💬 Message de ton coach</div><div style="font-size:13px;color:var(--light);line-height:1.7">${j.message_coach.text}</div></div>`;
 
   // Greeting
   h+=`<div style="margin-bottom:16px">
@@ -1454,8 +1521,9 @@ async function loginCoach(){
 function logoutCoach(){coachPwd=null;showScreen('landing');}
 
 function coachTab(tab){
-  ['joueurs','stats','annonce'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
+  ['joueurs','semaine','stats','annonce'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
   if(tab==='joueurs') renderCoachJoueurs();
+  else if(tab==='semaine') renderCoachSemaine();
   else if(tab==='stats') renderCoachStats();
   else renderCoachAnnonce();
 }
@@ -1464,45 +1532,31 @@ async function renderCoachJoueurs(){
   const joueurs=await sbGetJoueurs();
   let h=`<button class="btn btn-primary btn-sm" style="margin-bottom:14px" onclick="openModal('modal-add-player')">+ Nouveau joueur</button>`;
   if(!joueurs.length){h+=`<div class="empty"><div class="empty-icon">👥</div>Aucun joueur — Ajoute le premier joueur de l'équipe</div>`;g('coach-content').innerHTML=h;return;}
+  const now=Date.now();
   joueurs.sort((a,b)=>(a.prenom||'').localeCompare(b.prenom||'')).forEach(j=>{
     const stats=getStats(j);
     const phase=getPhaseActuelle();
     const badgeClass=stats.assiduite>=80?'pb-green':stats.assiduite>=50?'pb-gray':'pb-red';
     const badgeTxt=phase==='p2'?stats.assiduite+'%':'—';
-    h+=`<div class="player-row" onclick="coachViewPlayer('${j.code}')">
+    const statusIcon=j.statut==='blesse'?'🤕 ':j.statut==='vacances'?'🏖️ ':j.statut==='suspendu'?'⛔ ':'';
+    const lastVal=(j.seances_validees||[]).filter(s=>!s.missed).sort((a,b)=>b.ts-a.ts)[0];
+    const alert=phase==='p2'&&(!lastVal||(now-lastVal.ts)>10*24*3600*1000);
+    h+=`<div class="player-row" onclick="coachManagePlayer('${j.code}')">
       <div class="player-av" style="background:${couleurPourCode(j.code)}">${(j.prenom?j.prenom[0]:'?')+(j.nom?j.nom[0]:'')}</div>
-      <div style="flex:1"><div class="player-name">${j.prenom||'—'} ${(j.nom||'').toUpperCase()}</div>
-      <div class="player-meta">${j.poste||'—'} · VMA ${j.vma||'—'} · Code: ${j.code}</div></div>
+      <div style="flex:1"><div class="player-name">${statusIcon}${j.prenom||'—'} ${(j.nom||'').toUpperCase()}${alert?' <span style="color:var(--yellow);font-size:12px">⚠️</span>':''}</div>
+      <div class="player-meta">${j.poste||'—'} · VMA ${j.vma||'—'} · ${j.code}</div></div>
       <div class="player-badge ${badgeClass}">${badgeTxt}</div>
     </div>`;
   });
   g('coach-content').innerHTML=h;
 }
 
-async function coachViewPlayer(code){
-  const j=await sbGetJoueur(code);
-  if(!j) return;
-  const stats=getStats(j);
-  const seances=(j.seances_validees||[]).slice(-5).reverse();
-  let modal=`<div class="overlay open" id="modal-player-detail" onclick="if(event.target===this)this.remove()">
-    <div class="modal">
-      <div class="modal-title">${j.prenom} ${(j.nom||'').toUpperCase()} <button class="modal-close" onclick="g('modal-player-detail').remove()">✕</button></div>
-      <div class="row-between"><span class="text-gray">Poste</span><strong>${j.poste||'—'}</strong></div>
-      <div class="row-between"><span class="text-gray">VMA</span><strong>${j.vma||'—'} km/h</strong></div>
-      <div class="row-between"><span class="text-gray">Séances validées</span><strong>${stats.total}</strong></div>
-      <div class="row-between"><span class="text-gray">Assiduité</span><strong style="color:${stats.assiduite>=80?'var(--green)':stats.assiduite>=50?'var(--yellow)':'var(--red)'}">${stats.assiduite}%</strong></div>
-      <div class="row-between"><span class="text-gray">RPE moyen</span><strong>${stats.rpe_moy||'—'}</strong></div>
-      ${seances.length?`<div class="card-title" style="margin-top:14px;margin-bottom:8px">Dernières séances</div>${seances.map(s=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--s3)"><span style="color:var(--gray)">${s.date}</span><span>${s.missed?'❌ Manquée':`✅ RPE ${s.rpe||'—'}/10`}</span></div>`).join('')}`:''}
-      <button class="btn btn-secondary btn-sm" style="margin-top:14px" onclick="deletePlayer('${code}')">🗑️ Supprimer le joueur</button>
-    </div>
-  </div>`;
-  document.body.insertAdjacentHTML('beforeend',modal);
-}
+// coachViewPlayer replaced by coachManagePlayer
 
 async function deletePlayer(code){
-  if(!confirm(`Supprimer ce joueur définitivement ?`)) return;
+  if(!confirm('Supprimer ce joueur définitivement ?')) return;
   try{if(sb) await sb.from('joueurs').delete().eq('code',code);}catch(e){}
-  g('modal-player-detail')?.remove();
+  closeModal('modal-manage-player');
   showToast('Joueur supprimé','info');
   coachTab('joueurs');
 }
@@ -1528,22 +1582,41 @@ async function addPlayer(){
 
 async function renderCoachStats(){
   const joueurs=await sbGetJoueurs();
-  if(!joueurs.length){g('coach-content').innerHTML=`<div class="empty"><div class="empty-icon">📊</div>Aucune donnée disponible</div>`;return;}
+  if(!joueurs.length){g('coach-content').innerHTML=`<div class="empty"><div class="empty-icon">📊</div>Aucune donnée</div>`;return;}
   const ranked=joueurs.map(j=>({...j,stats:getStats(j)})).sort((a,b)=>b.stats.assiduite-a.stats.assiduite||b.stats.total-a.stats.total);
   const totalSeances=ranked.reduce((a,j)=>a+j.stats.total,0);
   const avgAssi=Math.round(ranked.reduce((a,j)=>a+j.stats.assiduite,0)/ranked.length);
+  const top3=ranked.slice(0,3);
+  const traine=ranked.filter(j=>j.stats.assiduite<50&&j.stats.total>0);
   const med=['🥇','🥈','🥉'];
+  const weekData=[0,1,2,3,4].map(w=>{
+    const total=joueurs.reduce((acc,j)=>acc+(j.seances_validees||[]).filter(s=>s.weekIdx===w&&!s.missed).length,0);
+    const max=joueurs.length*3;return max>0?Math.round(total/max*100):0;
+  });
+  const maxW=Math.max(...weekData,1);
   let h=`<div class="stats-row">
     <div class="stat-box" style="border-top:2px solid var(--red)"><div class="stat-val val-red">${joueurs.length}</div><div class="stat-lbl">Joueurs</div></div>
     <div class="stat-box" style="border-top:2px solid var(--green)"><div class="stat-val val-green">${totalSeances}</div><div class="stat-lbl">Séances</div></div>
     <div class="stat-box" style="border-top:2px solid var(--blue)"><div class="stat-val val-blue">${avgAssi}%</div><div class="stat-lbl">Assiduité moy.</div></div>
   </div>
-  <div class="card-title" style="margin:4px 0 10px">Classement Assiduité</div>`;
-  ranked.forEach((j,i)=>{h+=`<div class="lb-row"><div class="lb-rank">${i<3?med[i]:i+1}</div>
-    <div style="width:30px;height:30px;border-radius:50%;background:${couleurPourCode(j.code)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:12px;font-weight:900">${(j.prenom?j.prenom[0]:'?')}</div>
-    <div class="lb-name">${j.prenom}</div>
-    <div class="lb-val">${j.stats.assiduite}%</div>
-  </div>`;});
+  <div class="card"><div class="card-title">Assiduité par semaine</div>
+    <div class="bar-chart">${weekData.map((v,i)=>`<div class="bar-col"><div class="bar-pct">${v}%</div><div class="bar-fill" style="height:${Math.max(3,v/maxW*55)}px"></div><div class="bar-lbl">S${i+1}</div></div>`).join('')}</div>
+  </div>
+  <div class="card-title" style="margin-bottom:8px">🏆 Top 3</div>`;
+  top3.forEach((j,i)=>{h+=`<div class="lb-row" onclick="coachManagePlayer('${j.code}')" style="cursor:pointer"><div class="lb-rank">${med[i]}</div>
+    <div style="width:28px;height:28px;border-radius:50%;background:${couleurPourCode(j.code)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:11px;font-weight:900">${j.prenom?j.prenom[0]:'?'}</div>
+    <div class="lb-name">${j.prenom}</div><div class="lb-val">${j.stats.assiduite}%</div></div>`;});
+  if(traine.length){
+    h+=`<div class="card-title" style="margin:14px 0 8px">😴 À la traîne (&lt;50%)</div>`;
+    traine.forEach(j=>{h+=`<div class="traine-row" onclick="coachManagePlayer('${j.code}')">
+      <div style="width:28px;height:28px;border-radius:50%;background:${couleurPourCode(j.code)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:11px;font-weight:900">${j.prenom?j.prenom[0]:'?'}</div>
+      <div style="flex:1;font-size:13px;font-weight:600">${j.prenom}</div>
+      <div style="color:var(--red);font-family:var(--fnt-head);font-size:16px;font-weight:900">${j.stats.assiduite}%</div>→</div>`;});
+  }
+  h+=`<div class="card-title" style="margin:14px 0 8px">Classement complet</div>`;
+  ranked.forEach((j,i)=>{h+=`<div class="lb-row" onclick="coachManagePlayer('${j.code}')" style="cursor:pointer"><div class="lb-rank">${i<3?med[i]:i+1}</div>
+    <div style="width:28px;height:28px;border-radius:50%;background:${couleurPourCode(j.code)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:11px;font-weight:900">${j.prenom?j.prenom[0]:'?'}</div>
+    <div class="lb-name">${j.prenom}</div><div class="lb-val">${j.stats.assiduite}%</div></div>`;});
   g('coach-content').innerHTML=h;
 }
 
@@ -1573,6 +1646,216 @@ async function clearAnnonce(){
   await sbSaveMeta('annonce',null);
   showToast('Message supprimé','info');
   renderCoachAnnonce();
+}
+
+
+// ══════════════════════════════════════════════════
+// COACH — SEMAINE VIEW
+// ══════════════════════════════════════════════════
+async function renderCoachSemaine(){
+  const joueurs=await sbGetJoueurs();
+  const weekIdx=getPhase2Week();
+  const wl=getPhase2WeemLabel(weekIdx);
+  const now=Date.now();
+  let h=`<div class="card card-red" style="margin-bottom:12px">
+    <div style="font-family:var(--fnt-head);font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:1px">${wl.phase} — ${wl.label}</div>
+    <div style="font-size:11px;color:var(--gray);margin-top:2px">Semaine ${weekIdx+1} · Cliquer sur ＋ pour valider manuellement</div>
+  </div>`;
+  if(!joueurs.length){h+=`<div class="empty"><div class="empty-icon">📋</div>Aucun joueur</div>`;g('coach-content').innerHTML=h;return;}
+  h+=`<div class="wg-wrap"><table class="wg-table"><tr>
+    <th style="text-align:left;min-width:90px">Joueur</th>
+    <th>🫀 S1<br>Cardio</th><th>💪 S2<br>Force</th><th>⚡ S3<br>Vitesse</th><th>✅</th>
+  </tr>`;
+  joueurs.sort((a,b)=>(a.prenom||'').localeCompare(b.prenom||'')).forEach(j=>{
+    const si=j.statut==='blesse'?'🤕':j.statut==='vacances'?'🏖️':j.statut==='suspendu'?'⛔':'';
+    let tot=0;
+    const cells=[0,1,2].map(idx=>{
+      const done=(j.seances_validees||[]).find(s=>s.weekIdx===weekIdx&&s.sessionIdx===idx&&!s.missed);
+      const miss=(j.seances_validees||[]).find(s=>s.weekIdx===weekIdx&&s.sessionIdx===idx&&s.missed);
+      if(done){tot++;return `<td class="wg-done" onclick="coachManagePlayer('${j.code}')" title="RPE ${done.rpe||'—'}">✅</td>`;}
+      if(miss) return `<td class="wg-missed">❌</td>`;
+      return `<td class="wg-empty" onclick="openCoachAddSess('${j.code}',${weekIdx},${idx})" title="Valider">＋</td>`;
+    }).join('');
+    const tc=tot>=2?'var(--green)':tot===1?'var(--yellow)':'var(--red)';
+    h+=`<tr><td class="wg-name" onclick="coachManagePlayer('${j.code}')" style="cursor:pointer">${si?si+' ':''}${j.prenom}</td>${cells}<td style="font-family:var(--fnt-head);font-size:15px;font-weight:900;color:${tc}">${tot}</td></tr>`;
+  });
+  h+=`</table></div>`;
+  // Alertes inactifs
+  const alerts=joueurs.filter(j=>{
+    const lv=(j.seances_validees||[]).filter(s=>!s.missed).sort((a,b)=>b.ts-a.ts)[0];
+    return !lv||(now-lv.ts)>10*24*3600*1000;
+  });
+  if(alerts.length){
+    h+=`<div class="card-title" style="margin:16px 0 8px">⚠️ Inactifs depuis +10 jours</div>`;
+    alerts.forEach(j=>{
+      const lv=(j.seances_validees||[]).filter(s=>!s.missed).sort((a,b)=>b.ts-a.ts)[0];
+      const days=lv?Math.floor((now-lv.ts)/86400000):'—';
+      h+=`<div class="alert-row" onclick="coachManagePlayer('${j.code}')">
+        <div style="width:32px;height:32px;border-radius:50%;background:${couleurPourCode(j.code)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:13px;font-weight:900;flex-shrink:0">${j.prenom?j.prenom[0]:'?'}</div>
+        <div style="flex:1"><div style="font-weight:600;font-size:13px">${j.prenom} ${(j.nom||'').toUpperCase()}</div>
+        <div style="font-size:11px;color:var(--yellow)">${lv?`Dernière séance il y a ${days} jours`:'Aucune séance validée'}</div></div>→
+      </div>`;
+    });
+  }
+  g('coach-content').innerHTML=h;
+}
+
+// ══════════════════════════════════════════════════
+// COACH — MANAGE PLAYER MODAL
+// ══════════════════════════════════════════════════
+async function coachManagePlayer(code){
+  const j=await sbGetJoueur(code);
+  if(!j) return;
+  const stats=getStats(j);
+  const weekIdx=getPhase2Week();
+  const wl=getPhase2WeemLabel(weekIdx);
+  const statusIcon=j.statut==='blesse'?'🤕 ':j.statut==='vacances'?'🏖️ ':j.statut==='suspendu'?'⛔ ':'';
+  g('mmp-title').innerHTML=`${statusIcon}${j.prenom} ${(j.nom||'').toUpperCase()} <button class="modal-close" onclick="closeModal('modal-manage-player')">✕</button>`;
+  const cs=j.statut||'actif';
+  let h=`<div class="stats-row" style="margin-bottom:14px">
+    <div class="stat-box"><div class="stat-val val-red">${stats.total}</div><div class="stat-lbl">Séances</div></div>
+    <div class="stat-box"><div class="stat-val val-green">${stats.assiduite}%</div><div class="stat-lbl">Assiduité</div></div>
+    <div class="stat-box"><div class="stat-val val-blue">${stats.rpe_moy||'—'}</div><div class="stat-lbl">RPE moy.</div></div>
+  </div>
+  <div class="input-group"><label class="input-label">Statut joueur</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      ${[{k:'actif',l:'✅ Actif',c:'sp-actif'},{k:'blesse',l:'🤕 Blessé',c:'sp-blesse'},{k:'vacances',l:'🏖️ Vacances',c:'sp-vacances'},{k:'suspendu',l:'⛔ Suspendu',c:'sp-suspendu'}].map(s=>`<button class="sp ${s.c} ${cs===s.k?'':'inactive'}" onclick="coachSetStatus('${code}','${s.k}')">${s.l}</button>`).join('')}
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="input-group" style="margin:0"><label class="input-label">VMA (km/h)</label>
+      <input class="input-field" id="mmp-vma-${code}" type="number" step="0.5" value="${j.vma||13}" style="font-family:var(--fnt-head);font-size:20px;font-weight:900;text-align:center">
+    </div>
+    <div style="display:flex;align-items:flex-end;padding-bottom:0">
+      <button class="btn btn-primary btn-sm" style="white-space:nowrap;font-size:12px" onclick="coachSetVMA('${code}')">Mettre à jour</button>
+    </div>
+  </div>
+  <div class="input-group"><label class="input-label">📝 Note privée (coach seulement)</label>
+    <textarea class="input-field" id="mmp-note-${code}" rows="2" style="resize:none" placeholder="Blessure, retard physique, observation...">${j.note_coach||''}</textarea>
+    <button class="btn btn-secondary btn-sm" style="margin-top:5px" onclick="coachSetNote('${code}')">Sauvegarder la note</button>
+  </div>
+  <div class="input-group"><label class="input-label">💬 Message privé (visible par le joueur)</label>
+    <textarea class="input-field" id="mmp-msg-${code}" rows="2" style="resize:none" placeholder="Bien joué cette semaine ! Continue...">${j.message_coach?.text||''}</textarea>
+    <div style="display:flex;gap:6px;margin-top:5px">
+      <button class="btn btn-primary btn-sm" style="flex:1" onclick="coachSendMsg('${code}')">Envoyer</button>
+      ${j.message_coach?.text?`<button class="btn btn-secondary btn-sm" onclick="coachClearMsg('${code}')">✕ Supprimer</button>`:''}
+    </div>
+  </div>
+  <div class="card-title" style="margin-bottom:8px">Séances — ${wl.label}</div>`;
+  const sessNames=['PPP + Cardio','Force + Anti-blessure','Vitesse'];
+  [0,1,2].forEach(idx=>{
+    const done=(j.seances_validees||[]).find(s=>s.weekIdx===weekIdx&&s.sessionIdx===idx&&!s.missed);
+    const miss=(j.seances_validees||[]).find(s=>s.weekIdx===weekIdx&&s.sessionIdx===idx&&s.missed);
+    h+=`<div class="sess-manage-row" style="border-color:${done?'rgba(34,197,94,.3)':miss?'rgba(200,27,27,.2)':'var(--brd)'}">
+      <span style="font-size:18px">${done?'✅':miss?'❌':'⬜'}</span>
+      <div style="flex:1;font-size:13px;font-weight:600">S${idx+1} · ${sessNames[idx]}</div>
+      ${done?`<span style="font-size:11px;color:var(--gray)">RPE ${done.rpe||'—'}</span> <button onclick="coachDelSess('${code}',${done.ts})" style="background:none;border:none;color:var(--red);cursor:pointer;padding:2px 4px">🗑️</button>`:''}
+      ${!done&&!miss?`<button onclick="openCoachAddSess('${code}',${weekIdx},${idx})" style="background:none;border:1px solid var(--brd);border-radius:6px;color:var(--gray);cursor:pointer;font-size:11px;padding:4px 8px">+ Valider</button>`:''}
+      ${miss?`<button onclick="coachDelSess('${code}',${miss.ts})" style="background:none;border:none;color:var(--gray);cursor:pointer;font-size:11px">Effacer</button>`:''}
+    </div>`;
+  });
+  const recent=(j.seances_validees||[]).filter(s=>!s.missed).sort((a,b)=>b.ts-a.ts).slice(0,6);
+  if(recent.length){
+    h+=`<div class="card-title" style="margin:12px 0 6px">Historique</div>`;
+    recent.forEach(s=>{
+      h+=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--s3);font-size:12px">
+        <span>✅</span><span style="flex:1;color:var(--light)">Sem.${(s.weekIdx??0)+1} · S${(s.sessionIdx??0)+1}</span>
+        <span style="color:var(--gray)">RPE ${s.rpe||'—'}</span>
+        <span style="color:var(--dim)">${s.date||'—'}</span>
+        <button onclick="coachDelSess('${code}',${s.ts})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px">🗑️</button>
+      </div>`;
+    });
+  }
+  h+=`<button class="btn btn-secondary btn-sm" style="margin-top:16px;color:var(--red);border-color:rgba(200,27,27,.3)" onclick="deletePlayer('${code}')">🗑️ Supprimer le joueur</button>`;
+  g('mmp-content').innerHTML=h;
+  openModal('modal-manage-player');
+}
+
+// ── Coach: set status ──
+async function coachSetStatus(code,status){
+  const j=await sbGetJoueur(code);if(!j)return;
+  j.statut=status;
+  const ok=await sbSaveJoueur(j);if(!ok)return;
+  showToast('Statut: '+status,'success');
+  coachManagePlayer(code);
+}
+
+// ── Coach: set VMA ──
+async function coachSetVMA(code){
+  const vma=parseFloat(g('mmp-vma-'+code)?.value);
+  if(!vma||vma<8){showToast('VMA invalide','error');return;}
+  const j=await sbGetJoueur(code);if(!j)return;
+  j.vma=vma;
+  const ok=await sbSaveJoueur(j);if(!ok)return;
+  showToast('VMA mise à jour : '+vma+' km/h ✅','success');
+}
+
+// ── Coach: set note ──
+async function coachSetNote(code){
+  const note=g('mmp-note-'+code)?.value.trim();
+  const j=await sbGetJoueur(code);if(!j)return;
+  j.note_coach=note;
+  const ok=await sbSaveJoueur(j);if(!ok)return;
+  showToast('Note sauvegardée','success');
+}
+
+// ── Coach: send individual message ──
+async function coachSendMsg(code){
+  const text=g('mmp-msg-'+code)?.value.trim();
+  if(!text){showToast('Écris un message','error');return;}
+  const j=await sbGetJoueur(code);if(!j)return;
+  j.message_coach={text,date:new Date().toISOString()};
+  const ok=await sbSaveJoueur(j);if(!ok)return;
+  showToast('Message envoyé à '+j.prenom+' 💬','success');
+  coachManagePlayer(code);
+}
+async function coachClearMsg(code){
+  const j=await sbGetJoueur(code);if(!j)return;
+  delete j.message_coach;
+  const ok=await sbSaveJoueur(j);if(!ok)return;
+  showToast('Message supprimé','info');
+  coachManagePlayer(code);
+}
+
+// ── Coach: delete session ──
+async function coachDelSess(code,ts){
+  const j=await sbGetJoueur(code);if(!j)return;
+  j.seances_validees=(j.seances_validees||[]).filter(s=>s.ts!==ts);
+  const ok=await sbSaveJoueur(j);if(!ok)return;
+  showToast('Séance supprimée','info');
+  coachManagePlayer(code);
+}
+
+// ── Coach: open add session modal ──
+let _coachPendSess=null, _coachAddRPE=7;
+function openCoachAddSess(code,weekIdx,sessionIdx){
+  _coachPendSess={code,weekIdx,sessionIdx};_coachAddRPE=7;
+  const sn=['S1 · PPP + Cardio','S2 · Force + Anti-blessure','S3 · Vitesse (facultatif)'];
+  const wl=getPhase2WeemLabel(weekIdx);
+  g('mcas-info').innerHTML=`<strong>${sn[sessionIdx]}</strong> · ${wl.label}`;
+  g('mcas-week').value=weekIdx;g('mcas-sess').value=sessionIdx;
+  let rh='';for(let i=1;i<=10;i++){const c=i<=3?'var(--green)':i<=6?'var(--yellow)':i<=8?'var(--red)':'#ff4444';rh+=`<div class="rpe-btn ${i===7?'sel':''}" id="mcas-rpe-${i}" onclick="selectCoachRPE(${i})"><div style="color:${c}">${i}</div></div>`;}
+  g('mcas-rpe-grid').innerHTML=rh;
+  g('mcas-rpe-feel').textContent=RPE_FEELINGS[6];
+  closeModal('modal-manage-player');
+  openModal('modal-coach-add-sess');
+}
+function selectCoachRPE(n){_coachAddRPE=n;document.querySelectorAll('[id^="mcas-rpe-"]').forEach((el,i)=>el.classList.toggle('sel',i===n-1));g('mcas-rpe-feel').textContent=RPE_FEELINGS[n-1];}
+async function confirmCoachAddSess(){
+  if(!_coachPendSess)return;
+  const {code}=_coachPendSess;
+  const weekIdx=parseInt(g('mcas-week').value);
+  const sessionIdx=parseInt(g('mcas-sess').value);
+  const j=await sbGetJoueur(code);if(!j){showToast('Joueur introuvable','error');return;}
+  if(!j.seances_validees)j.seances_validees=[];
+  j.seances_validees=j.seances_validees.filter(s=>!(s.weekIdx===weekIdx&&s.sessionIdx===sessionIdx));
+  j.seances_validees.push({date:new Date().toISOString().split('T')[0],weekIdx,sessionIdx,rpe:_coachAddRPE,missed:false,ts:Date.now(),byCoach:true});
+  const ok=await sbSaveJoueur(j);if(!ok)return;
+  closeModal('modal-coach-add-sess');
+  showToast(j.prenom+' — séance validée ✅','success');
+  checkBadges(j);
+  const activeTab=document.querySelector('.ctab.active')?.id?.replace('ctab-','');
+  if(activeTab)coachTab(activeTab);
 }
 
 // ══════════════════════════════════════════════════
