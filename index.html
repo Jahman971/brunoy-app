@@ -380,6 +380,7 @@ select.input-field option{background:var(--s2)}
     <button class="ctab" id="ctab-semaine" onclick="coachTab('semaine')">Semaine</button>
     <button class="ctab" id="ctab-stats" onclick="coachTab('stats')">Stats</button>
     <button class="ctab" id="ctab-planning" onclick="coachTab('planning')">Planning</button>
+    <button class="ctab" id="ctab-biblio" onclick="coachTab('biblio')">Biblio</button>
     <button class="ctab" id="ctab-annonce" onclick="coachTab('annonce')">Message</button>
   </div>
   <div class="coach-content" id="coach-content"></div>
@@ -1927,11 +1928,12 @@ async function loginCoach(){
 function logoutCoach(){coachPwd=null;currentCoach=null;selectedCoachId='lohan';showScreen('landing');}
 
 function coachTab(tab){
-  ['joueurs','semaine','stats','planning','annonce'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
+  ['joueurs','semaine','stats','planning','biblio','annonce'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
   if(tab==='joueurs') renderCoachJoueurs();
   else if(tab==='semaine') renderCoachSemaine();
   else if(tab==='stats') renderCoachStats();
   else if(tab==='planning') renderCoachPlanning();
+  else if(tab==='biblio') renderCoachBiblio();
   else renderCoachAnnonce();
 }
 
@@ -2453,6 +2455,304 @@ async function deleteEvent(){
   closeModal('modal-edit-event');
   showToast('Événement supprimé','info');
   renderCoachPlanning();
+}
+
+
+// ══════════════════════════════════════════════════
+// BIBLIOTHÈQUE COMPLÈTE PPP GUÉGAN (Coach only)
+// Source: Christophe Guégan, FFHandball, CMN
+// ══════════════════════════════════════════════════
+const BIBLIO_PPP = [
+  // ── PRÉVENTION CHEVILLES ──────────────────────
+  {cat:'Chevilles', sous:'Tests', id:'C01', nom:'Side Up Test',
+   dosage:'10 sauts de part et d\'autre / jambe',
+   exec:'Debout sur 1 pied, effectuer 10 sauts de part et d\'autre de 2 lignes tracées à 30 cm au sol. Compter le nombre de contacts sans erreur.',
+   note:'Référence prévention entorse de cheville'},
+  {cat:'Chevilles', sous:'Tests', id:'C02', nom:'Équilibre unipodal statique',
+   dosage:'Max de secondes / jambe',
+   exec:'Debout sur 1 jambe, tenir l\'équilibre le plus longtemps possible sans poser l\'autre pied.',
+   note:'Progresser semaine par semaine — noter les résultats'},
+  {cat:'Chevilles', sous:'Proprioception', id:'C03', nom:'Station debout bipodale appuis décalés',
+   dosage:'20-30s / jambe',
+   exec:'Équilibre talon au sol / avant-pied alternés, malgré légères déstabilisations du partenaire.'},
+  {cat:'Chevilles', sous:'Proprioception', id:'C04', nom:'Station unipodale — genou en extension',
+   dosage:'20-30s / jambe',
+   exec:'Maintenir l\'équilibre sur 1 jambe genou tendu, malgré déstabilisations du partenaire dans différentes directions.',
+   note:'Progression : yeux fermés'},
+  {cat:'Chevilles', sous:'Proprioception', id:'C05', nom:'Station unipodale — surfaces alternées',
+   dosage:'20-30s / jambe',
+   exec:'Sauter alternativement entre surface stable et surface instable (tapis de mousse) en maintenant l\'équilibre.'},
+  {cat:'Chevilles', sous:'Proprioception', id:'C06', nom:'Station unipodale — ballon posé sur mains',
+   dosage:'20-30s / jambe',
+   exec:'Sur 1 pied, maintenir l\'équilibre d\'un ballon posé sur les mains, bras horizontaux.',
+   note:'Focus externe : regarder un point fixe au loin'},
+  {cat:'Chevilles', sous:'Proprioception', id:'C07', nom:'Station unipodale yeux fermés + ballon',
+   dosage:'20-30s / jambe',
+   exec:'Sur 1 pied yeux fermés, ballon posé sur les mains à l\'horizontale.'},
+  {cat:'Chevilles', sous:'Proprioception', id:'C08', nom:'Stabilisation genou en extension après saut latéral ⭐',
+   dosage:'2-4 séries × 4 sauts / jambe',
+   exec:'Saut latéral puis stabilisation 2 secondes, genou tendu sur la jambe d\'atterrissage.',
+   note:'Exercice clé prévention entorses'},
+  {cat:'Chevilles', sous:'Proprioception', id:'C09', nom:'Station unipodale avec charge(s) déstabilisante(s)',
+   dosage:'20-30s / jambe',
+   exec:'Maintenir l\'équilibre en mobilisant 1 ou 2 charges dans différents axes.'},
+  {cat:'Chevilles', sous:'Proprioception', id:'C10', nom:'Station unipodale — charge + ballon sur avant-bras',
+   dosage:'20-30s / jambe',
+   exec:'Mobiliser une charge en main, ballon posé sur les deux avant-bras.'},
+  {cat:'Chevilles', sous:'Proprioception', id:'C11', nom:'Saut latéral + stabilisation + passes',
+   dosage:'3-6 séries × 6 sauts',
+   exec:'Sauts latéraux successifs puis stabilisation, enchaînés avec échanges de passes.',
+   note:'Intégrable pendant les échauffements ballon'},
+  {cat:'Chevilles', sous:'Proprioception', id:'C12', nom:'Déstabilisation contrôlée à l\'impulsion (transfert tir)',
+   dosage:'3-6 séries × 3 tirs',
+   exec:'Tir en suspension avec déstabilisation contrôlée par le partenaire au moment de l\'impulsion.',
+   note:'Spécifique tir en suspension — conditions réelles de match'},
+  {cat:'Chevilles', sous:'Renforcement éverseurs', id:'C13', nom:'Traction latérale freinée',
+   dosage:'3 × 6 mouvements, 2-3s / cheville',
+   exec:'S\'opposer latéralement à la traction du partenaire en déroulant lentement le pied bord interne vers bord externe. Freiner le retour.'},
+  {cat:'Chevilles', sous:'Renforcement éverseurs', id:'C14', nom:'Gainage latéral sur avant-pied',
+   dosage:'3 × 6 mouvements / cheville',
+   exec:'En gainage latéral, effectuer des montées-descentes de cheville en appui sur le bord externe du pied.'},
+  {cat:'Chevilles', sous:'Renforcement éverseurs', id:'C15', nom:'Renforcement éverseurs en contrehaut',
+   dosage:'3 × 6 mouvements / cheville',
+   exec:'Debout, freiner la descente de l\'avant-pied sur un axe oblique au bord d\'une marche.'},
+  {cat:'Chevilles', sous:'Renforcement éverseurs', id:'C16', nom:'Renforcement éverseurs avec élastique',
+   dosage:'3 × 6 mouvements / cheville',
+   exec:'Mouvements d\'éversion contre une bande élastique fixée, retour lent contrôlé.'},
+  // ── PRÉVENTION GENOUX ─────────────────────────
+  {cat:'Genoux', sous:'Tests', id:'G01', nom:'SEBT — Star Excursion Balance Test',
+   dosage:'3 directions / jambe',
+   exec:'Debout au centre d\'un Y tracé au sol, atteindre la plus grande distance dans chacune des 3 directions avec le pied libre.',
+   note:'Asymétrie > 4 cm entre les deux jambes = signal d\'alerte'},
+  {cat:'Genoux', sous:'Tests', id:'G02', nom:'Single Leg Hop',
+   dosage:'3 essais / jambe',
+   exec:'Saut unipodal le plus loin possible, stabiliser la réception 2 secondes sans bouger.',
+   note:'Indice de symétrie cible : jambe faible/forte × 100 ≥ 90%'},
+  {cat:'Genoux', sous:'Tests', id:'G03', nom:'Drop Vertical Jump ⭐',
+   dosage:'1 série × 5 répétitions',
+   exec:'Descente d\'un banc, réception bipodale immédiatement suivie d\'un saut vertical maximal. Observer l\'alignement genou.',
+   note:'Détection valgus dynamique — clé prévention LCA'},
+  {cat:'Genoux', sous:'Proprioception statique', id:'G04', nom:'Proprioception unipodale antivalgus',
+   dosage:'20-30s / jambe',
+   exec:'Équilibre unipodal genou fléchi + mouvements de balancier de l\'autre jambe.'},
+  {cat:'Genoux', sous:'Proprioception dynamique', id:'G05', nom:'Sauts latéraux alternés stabilisés',
+   dosage:'2-3 × 20-30s',
+   exec:'Sauts latéraux au-dessus de 2 marques espacées de +1m, stabilisation à la réception.',
+   note:'Progression : ajouter ballon sur mains'},
+  {cat:'Genoux', sous:'Proprioception dynamique', id:'G06', nom:'Stabilisation après sauts latéraux explosifs',
+   dosage:'3 × 3-6 sauts / jambe',
+   exec:'Saut latéral explosif + stabilisation 2 secondes genou fléchi sur la jambe opposée.'},
+  {cat:'Genoux', sous:'Nordic Curl', id:'G07', nom:'Nordic Curl ⭐⭐',
+   dosage:'3 × 6 répétitions — descente 4-5 secondes',
+   exec:'En appui sur les genoux, talons fixés par un partenaire ou sous une barre, descendre lentement vers l\'avant en freinant avec les ischiojambiers. Remonter en s\'aidant des mains.',
+   note:'Exercice n°1 prévention handball — réduit jusqu\'à 50% les lésions ischios. À faire 2×/semaine minimum.'},
+  // ── PRÉVENTION ÉPAULES ────────────────────────
+  {cat:'Épaules', sous:'Tests', id:'E01', nom:'SMBT — Seated Medicine Ball Throw',
+   dosage:'Moyenne 3 lancers / bras',
+   exec:'Assis dos au mur, lancer une médecine ball de 2 kg le plus loin possible sans décoller épaules, tronc ni tête du mur.',
+   note:'Asymétrie > 10% = signal d\'alerte'},
+  {cat:'Épaules', sous:'Biomécanique', id:'E02', nom:'Technique de l\'armer : engagement coude',
+   dosage:'Gammes analytiques à l\'échauffement',
+   exec:'Gammes de passes en engageant le coude et l\'avant-bras dans un plan transversal. Focus sur le placement du coude haut.'},
+  {cat:'Épaules', sous:'Proprioception', id:'E03', nom:'Déstabilisation rythmée alternée à deux',
+   dosage:'2-4 × 20s',
+   exec:'En appui position d\'armer coude fléchi, s\'opposer aux mouvements imposés alternativement rotations interne/externe par le partenaire.',
+   note:'Coude à 90°, lenteur et contrôle'},
+  {cat:'Épaules', sous:'Fixateurs omoplates', id:'E04', nom:'Fixateurs bilatéraux avec élastique',
+   dosage:'2-4 × 6-8 mouvements',
+   exec:'Alterner mouvements de rotation externe et rétropulsion horizontale depuis les appuis avec élastique.'},
+  {cat:'Épaules', sous:'Fixateurs omoplates', id:'E05', nom:'Pompes bras tendus',
+   dosage:'2-4 × 6-8 mouvements',
+   exec:'En position de pompes, coudes en extension, mouvements de montée-descente du tronc en mobilisant les omoplates.'},
+  {cat:'Épaules', sous:'Rotateurs externes', id:'E06', nom:'Rotateurs — dos au partenaire ⭐',
+   dosage:'2-4 × 6-8 mouvements',
+   exec:'En position d\'armer coude haut, maintenu par le partenaire, freiner la rotation interne imposée pendant 3 secondes.',
+   note:'Exercice majeur prévention tendinite épaule'},
+  {cat:'Épaules', sous:'Rotateurs externes', id:'E07', nom:'Rotateurs externes coude au corps — élastique',
+   dosage:'2-4 × 6-8 mouvements',
+   exec:'Mouvements rotation externe coude au corps contre élastique tenu partenaire, freiner le retour.'},
+  {cat:'Épaules', sous:'Rotateurs externes', id:'E08', nom:'Rotateurs externes position armer — élastique fixé',
+   dosage:'2-4 × 6-8 mouvements',
+   exec:'Mouvements de rotation externe en position d\'armer contre un élastique fixé, freiner le retour.'},
+  {cat:'Épaules', sous:'Gainage épaule', id:'E09', nom:'Gainage épaule à deux',
+   dosage:'4-6 × 20s',
+   exec:'Coudes au corps contre les mains, les deux joueurs s\'opposent alternativement à la pression du partenaire.'},
+  {cat:'Épaules', sous:'Gainage épaule', id:'E10', nom:'Pompes explosives en contrehaut',
+   dosage:'2-4 × 4-6 mouvements',
+   exec:'Séries de pompes pliométriques dans différents axes en contrehaut.'},
+  {cat:'Épaules', sous:'Gainage épaule', id:'E11', nom:'Gainage épaules + tirs',
+   dosage:'Séquences de 4 postures + 1 tir',
+   exec:'Déplacements latéraux en gainage d\'épaules avec deux partenaires, enchaîner par un tir.'},
+  {cat:'Épaules', sous:'Étirements', id:'E12', nom:'Étirements capsule postérieure',
+   dosage:'3 × contracté-relâché 15s',
+   exec:'Étirements de la capsule postérieure en position allongée puis debout.'},
+  // ── GAINAGE TRONC ─────────────────────────────
+  {cat:'Gainage', sous:'Tests', id:'T01', nom:'Pompes / Rameurs alternés',
+   dosage:'Max en 30s',
+   exec:'Alterner le maximum de pompes et de rameurs en 30 secondes.'},
+  {cat:'Gainage', sous:'Gainage latéral', id:'T02', nom:'Gainage latéral statique — bras en armer',
+   dosage:'3 × 30-45s / côté',
+   exec:'Bras relâché en position d\'armer avec ballon, mouvements lents de montées-descentes du bassin.'},
+  {cat:'Gainage', sous:'Gainage latéral', id:'T03', nom:'Gainage latéral pliométrique',
+   dosage:'3 × 15s / côté',
+   exec:'Sauts alternés genoux fléchis puis tendus, en appui sur un avant-bras.'},
+  {cat:'Gainage', sous:'Gainage latéral', id:'T04', nom:'Gainage latéral avec charges',
+   dosage:'3 × 15-20s / côté',
+   exec:'Montée-descente du bassin lente (3s) avec charge (5-10 kg) sur une hanche + plot en équilibre.'},
+  {cat:'Gainage', sous:'Face au sol', id:'T05', nom:'Gainage statique face au sol + plot',
+   dosage:'3 × 30s-1min',
+   exec:'En appui sur les coudes, maintenir l\'équilibre d\'un plot posé sur le bassin.'},
+  {cat:'Gainage', sous:'Face au sol', id:'T06', nom:'Gainage chaînes croisées postérieures',
+   dosage:'3 × 3-6 mouvements / diagonale',
+   exec:'En diagonale sur deux appuis face au sol, extension simultanée jambe et bras opposés.'},
+  {cat:'Gainage', sous:'Face au sol', id:'T07', nom:'Gainage chaînes croisées — accélération',
+   dosage:'3 × 6-10 mouvements / diagonale',
+   exec:'Idem en diagonale, extension simultanée à vitesse rapide. Développe la coordination neuromusculaire.'},
+  {cat:'Gainage', sous:'Coordination', id:'T08', nom:'Gainage / Coordination — vitesse lente puis rapide',
+   dosage:'3 × 30-60s',
+   exec:'Enchaînements de positions de gainage (assis, latéral, face au sol) d\'abord lentement puis à vitesse rapide.'},
+  // ── PLIOMÉTRIE / EXPLOSIVITÉ ──────────────────
+  {cat:'Pliométrie', sous:'Tests', id:'P01', nom:'Sargent Test — Détente verticale',
+   dosage:'3 essais — noter le meilleur',
+   exec:'Saut vertical maximal. Marquer la hauteur maximale atteinte (craie sur un doigt, bras tendu). Mesurer la différence entre hauteur d\'appel et hauteur maximale.',
+   note:'Repris lors des tests collectifs'},
+  {cat:'Pliométrie', sous:'Travail de pied', id:'P02', nom:'Fentes explosives — 6 axes',
+   dosage:'3 × 6-10 mouvements',
+   exec:'Mouvements de fentes alternées à vitesse maximale dans différents axes.'},
+  {cat:'Pliométrie', sous:'Travail de pied', id:'P03', nom:'Pieds — Débordements',
+   dosage:'3 × 10 débordements',
+   exec:'Appuis-débordements à pleine vitesse en progressant vers l\'avant sur 5m.'},
+  {cat:'Pliométrie', sous:'Travail de pied', id:'P04', nom:'Pied athlétique ⭐',
+   dosage:'3-6 × 3-6 sauts',
+   exec:'Sauts maximaux, genoux verrouillés et tendus. Travail tendineux — rebonds depuis les pieds.',
+   note:'Renforce les tendons d\'Achille et la stiffness musculo-tendineuse'},
+  {cat:'Pliométrie', sous:'Plio basse', id:'P05', nom:'Sauts latéraux alternés explosifs',
+   dosage:'3-6 × 20-30s',
+   exec:'Séries de sauts latéraux alternés au-dessus de deux marques espacées de 1m.'},
+  {cat:'Pliométrie', sous:'Plio basse', id:'P06', nom:'Sauts latéraux stabilisés',
+   dosage:'3-6 × 6 mouvements / côté',
+   exec:'Saut latéral explosif, stabilisation 2 secondes sur la jambe opposée genou fléchi.'},
+  {cat:'Pliométrie', sous:'Plio contrehaut', id:'P07', nom:'Sauts bipodaux en contrehaut',
+   dosage:'4-6 × 4-6 sauts',
+   exec:'Séries de sauts bipodaux explosifs sur un banc ou une marche.'},
+  {cat:'Pliométrie', sous:'Plio contrebas', id:'P08', nom:'Sauts bipodaux en contrebas',
+   dosage:'3-6 × 3-6 sauts',
+   exec:'Sauts en avant ou en arrière à partir d\'un banc, rebond au sol de manière explosive.'},
+  {cat:'Pliométrie', sous:'Intégré tir', id:'P09', nom:'8 et tir en suspension',
+   dosage:'5 × 4 huit + 1 tir',
+   exec:'Déplacements en 8 autour de marques au sol, suivis d\'un tir en suspension.'},
+  {cat:'Pliométrie', sous:'Intégré tir', id:'P10', nom:'Lattes sautées et tir en suspension',
+   dosage:'5 × 6 sauts stabilisés + 1 tir',
+   exec:'Sauts latéraux stabilisés de part et d\'autre de deux marques, suivis d\'un tir.'},
+  {cat:'Pliométrie', sous:'Intégré tir', id:'P11', nom:'Gainage — pliométrie et tir à deux',
+   dosage:'4-6 enchaînements',
+   exec:'En gainage debout soutenu par un partenaire, sauts arrière suivis d\'un tir.'},
+  // ── DÉVELOPPEMENT PHYSIOLOGIQUE ───────────────
+  {cat:'Physio', sous:'Formats collectifs', id:'Ph01', nom:'10/5 en binômes',
+   dosage:'1-2 blocs × 3-4 min',
+   exec:'Un joueur effectue un exercice à vitesse maximale pendant 10s pendant que son partenaire réalise des sauts alternés explosifs pendant 5s de récupération.',
+   note:'Travail intermittent court — développement PMA'},
+  {cat:'Physio', sous:'Formats collectifs', id:'Ph02', nom:'Échauffement PPP sans ballon ⭐',
+   dosage:'9-12 min total',
+   exec:'Phase 1 mise en train (3-4 min) : mobilisation étagée faible intensité.<br>Phase 2 activation (3-4 min) : séquences vitesse/rythme augmentés + sollicitation excentrique.<br>Phase 3 dynamique (3-4 min) : vitesse maximale, séquences courtes à rythme élevé avec contrôle des réceptions anti-valgus.',
+   note:'À utiliser en début de chaque séance collective'},
+  {cat:'Physio', sous:'Formats collectifs', id:'Ph03', nom:'30/30 en binômes avec gradins',
+   dosage:'2-3 blocs × 6-8 min',
+   exec:'Gainage-coordination dynamique 30s, partenaire en récupération active en course pendant 30s.',
+   note:'Travail de PMA — intensité > 90% FC max'},
+  {cat:'Physio', sous:'Formats collectifs', id:'Ph04', nom:'30/30 à 3 avec ballon',
+   dosage:'2-3 blocs × 6-8 min',
+   exec:'À 3 joueurs : duel sur la largeur du terrain + passe au partenaire, sauts alternés stabilisés 30s.'},
+  {cat:'Physio', sous:'Formats collectifs', id:'Ph05', nom:'2×2 avec ballon',
+   dosage:'1-2 blocs × 3-5 min',
+   exec:'Jeu 2×2 sur 1/4 de terrain avec changement de statut systématique en sprint + PPP en attente sur les lignes de but et médiane.'},
+];
+
+const BIBLIO_CATS = ['Chevilles','Genoux','Épaules','Gainage','Pliométrie','Physio'];
+
+async function renderCoachBiblio(){
+  let activeCat = window._biblioCat || 'Chevilles';
+  let searchTerm = window._biblioSearch || '';
+
+  const filtered = BIBLIO_PPP.filter(e => {
+    const matchCat = e.cat === activeCat;
+    const matchSearch = !searchTerm ||
+      e.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.exec.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.sous.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchCat && matchSearch;
+  });
+
+  let h = `<div style="font-size:11px;color:var(--dim);margin-bottom:10px">
+    Source : Christophe Guégan · FFHandball · Commission Médicale Nationale
+  </div>`;
+
+  // Search
+  h += `<div style="margin-bottom:12px;display:flex;gap:8px">
+    <input class="input-field" id="biblio-search" placeholder="🔍 Rechercher..." 
+      value="${searchTerm}" oninput="window._biblioSearch=this.value;renderCoachBiblio()" 
+      style="flex:1;padding:10px 12px;font-size:13px">
+  </div>`;
+
+  // Category tabs
+  h += `<div style="display:flex;gap:5px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none;padding-bottom:4px">`;
+  BIBLIO_CATS.forEach(cat => {
+    const count = BIBLIO_PPP.filter(e=>e.cat===cat).length;
+    const active = cat === activeCat;
+    h += `<button onclick="window._biblioCat='${cat}';renderCoachBiblio()" 
+      style="flex-shrink:0;padding:6px 12px;border-radius:20px;border:1px solid ${active?'var(--red)':'var(--brd)'};
+      background:${active?'var(--red2)':'var(--s2)'};color:${active?'var(--white)':'var(--gray)'};
+      font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">
+      ${cat} <span style="opacity:.6">${count}</span>
+    </button>`;
+  });
+  h += `</div>`;
+
+  if(!filtered.length){
+    h += `<div class="empty"><div class="empty-icon">🔍</div>Aucun exercice trouvé</div>`;
+  } else {
+    // Group by sous-catégorie
+    const sousGroups = {};
+    filtered.forEach(e => {
+      if(!sousGroups[e.sous]) sousGroups[e.sous] = [];
+      sousGroups[e.sous].push(e);
+    });
+    Object.entries(sousGroups).forEach(([sous, exos]) => {
+      h += `<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+        color:var(--gray);margin:14px 0 8px;padding-left:4px">${sous} (${exos.length})</div>`;
+      exos.forEach(e => {
+        const isKey = e.nom.includes('⭐');
+        h += `<div style="background:var(--s2);border:1px solid ${isKey?'rgba(200,27,27,.3)':'var(--brd)'};
+          border-radius:var(--r);margin-bottom:8px;overflow:hidden">
+          <div onclick="toggleWeekDetail('biblio-${e.id}')" 
+            style="display:flex;align-items:center;gap:10px;padding:11px 12px;cursor:pointer">
+            <div style="width:32px;height:32px;border-radius:6px;background:${isKey?'var(--red2)':'var(--s3)'};
+              display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);
+              font-size:11px;font-weight:900;color:${isKey?'var(--red)':'var(--gray)'};flex-shrink:0">${e.id}</div>
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:13px;color:var(--white)">${e.nom}</div>
+              <div style="font-size:11px;color:var(--gray)">${e.dosage}</div>
+            </div>
+            <span style="color:var(--dim);font-size:14px">▼</span>
+          </div>
+          <div id="biblio-${e.id}" style="display:none;padding:0 12px 12px;border-top:1px solid var(--brd)">
+            <div style="font-size:12px;color:var(--light);line-height:1.7;margin-top:10px">${e.exec}</div>
+            ${e.note ? `<div style="margin-top:8px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
+              border-radius:6px;padding:8px 10px;font-size:11px;color:var(--yellow);line-height:1.6">
+              💡 ${e.note}</div>` : ''}
+            <div style="display:flex;gap:6px;margin-top:10px">
+              <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;
+                background:rgba(59,130,246,.12);color:#60a5fa">${e.cat}</span>
+              <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;
+                background:var(--s3);color:var(--gray)">${e.sous}</span>
+            </div>
+          </div>
+        </div>`;
+      });
+    });
+  }
+
+  g('coach-content').innerHTML = h;
 }
 
 // ══════════════════════════════════════════════════
