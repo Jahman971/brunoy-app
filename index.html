@@ -2294,7 +2294,7 @@ async function renderCoachPlanning(){
 
 function openNewEvent(){
   _editingEventIdx=-1;
-  g('mee-title').innerHTML='Nouvel événement <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>';
+  g('mee-title').innerHTML=`Nouvel événement <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>`;
   g('mee-date').value='2026-08-17';
   g('mee-titre').value='';
   g('mee-type').value='collective';
@@ -2310,7 +2310,7 @@ async function openEditEvent(idx){
   const e=plan[idx];
   if(!e) return;
   _editingEventIdx=idx;
-  g('mee-title').innerHTML=`Modifier l\'événement <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>`;
+  g('mee-title').innerHTML=`Modifier l'événement <button class="modal-close" onclick="closeModal('modal-edit-event')">✕</button>`;
   g('mee-date').value=e.date||'';
   g('mee-titre').value=e.titre||'';
   g('mee-type').value=e.type||'collective';
