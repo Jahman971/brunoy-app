@@ -745,7 +745,8 @@ select.input-field option{background:var(--s2)}
 <!-- ═══════════════════════════════════════════════════════════
      SUPABASE + APP SCRIPT
 ═══════════════════════════════════════════════════════════ -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
 
 /* =========================================================
    PATCH V4 — CHRONO FONCTIONNEL ROBUSTE
@@ -4072,5 +4073,277 @@ window.addEventListener('load',()=>{
   }
 });
 </script>
+
+<script>
+/* =========================================================
+   PATCH FINAL — CHRONO GARANTI
+   Corrige le compteur bloqué en remplaçant le moteur timer
+   après le chargement de tout le script principal.
+========================================================= */
+(function(){
+  const S = {
+    interval: null,
+    running: false,
+    sec: 0,
+    duration: 0,
+    effortSec: 0,
+    recupSec: 0,
+    reps: 1,
+    rep: 1,
+    phase: 'effort',
+    title: 'Chrono',
+    lastTick: 0
+  };
+
+  function $(id){ return document.getElementById(id); }
+
+  function fmt(sec){
+    sec = Math.max(0, Math.ceil(Number(sec) || 0));
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m + ':' + String(s).padStart(2,'0');
+  }
+
+  function setTxt(id, value){
+    const el = $(id);
+    if(el) el.textContent = value;
+  }
+
+  function setWidth(id, value){
+    const el = $(id);
+    if(el) el.style.width = value;
+  }
+
+  function vibrate(pattern){
+    try{ if(navigator.vibrate) navigator.vibrate(pattern || [180,80,180]); }catch(e){}
+  }
+
+  function beep(){
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      const ctx = window.__brunoyAudioCtx || new AC();
+      window.__brunoyAudioCtx = ctx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = S.phase === 'effort' ? 740 : 520;
+      gain.gain.value = 0.05;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      setTimeout(()=>{ try{ osc.stop(); }catch(e){} }, 130);
+    }catch(e){}
+  }
+
+  function wakeLock(){
+    try{
+      if('wakeLock' in navigator){
+        navigator.wakeLock.request('screen').catch(()=>{});
+      }
+    }catch(e){}
+  }
+
+  function phaseLabel(){
+    if(S.reps > 1){
+      return (S.phase === 'effort' ? '🔴 Effort' : '🟢 Récup') + ' · Bloc ' + S.rep + '/' + S.reps;
+    }
+    return S.title || 'Chrono';
+  }
+
+  window.updateTimerDisplay = function(){
+    const label = phaseLabel();
+    const pct = S.duration > 0 ? Math.min(100, Math.max(0, ((S.duration - S.sec) / S.duration) * 100)) : 0;
+
+    setTxt('inline-timer-display', fmt(S.sec));
+    setTxt('inline-timer-label', '⏱ ' + label);
+    setTxt('inline-timer-rep', S.reps > 1 ? (S.phase === 'effort' ? 'Effort' : 'Récup') + ' · Bloc ' + S.rep + ' / ' + S.reps : 'Chrono simple');
+    setWidth('inline-timer-fill', pct + '%');
+
+    const fill = $('inline-timer-fill');
+    if(fill) fill.style.background = S.phase === 'effort' ? 'var(--red)' : 'var(--green)';
+
+    const mini = $('mini-timer-sticky');
+    if(mini){
+      if(S.running) mini.classList.add('on');
+      setTxt('mini-timer-label', label.toUpperCase());
+      setTxt('mini-timer-time', fmt(S.sec));
+      setTxt('mini-timer-toggle', S.running ? '⏸' : '▶');
+    }
+
+    setTxt('timer-display', fmt(S.sec));
+    setTxt('timer-rep-label', S.reps > 1 ? 'Bloc ' + S.rep + ' / ' + S.reps : 'Chrono simple');
+    setTxt('timer-phase-label', label.toUpperCase());
+  };
+
+  function startLoop(){
+    clearInterval(S.interval);
+    S.lastTick = Date.now();
+    S.interval = setInterval(function(){
+      if(!S.running) return;
+
+      const now = Date.now();
+      const diff = Math.max(1, Math.floor((now - S.lastTick) / 1000));
+
+      if(diff < 1) return;
+      S.lastTick = now;
+      S.sec -= diff;
+
+      if(S.sec <= 0){
+        beep();
+        vibrate();
+
+        if(S.reps > 1 && S.phase === 'effort' && S.recupSec > 0){
+          S.phase = 'recup';
+          S.sec = S.recupSec;
+          S.duration = S.recupSec;
+        } else if(S.reps > 1 && S.rep < S.reps){
+          S.rep += 1;
+          S.phase = 'effort';
+          S.sec = S.effortSec;
+          S.duration = S.effortSec;
+        } else {
+          S.sec = 0;
+          S.running = false;
+          clearInterval(S.interval);
+          setTxt('inline-timer-start', '✅ Terminé');
+          setTxt('timer-start-btn', '✅ Terminé');
+          updateTimerDisplay();
+          return;
+        }
+      }
+
+      updateTimerDisplay();
+    }, 250);
+  }
+
+  window.startInlineTimer = function(reps, speedKmh, effortSec, recupSec, title){
+    clearInterval(S.interval);
+
+    S.reps = Math.max(1, Number(reps) || 1);
+    S.rep = 1;
+    S.phase = 'effort';
+    S.effortSec = Math.max(1, Number(effortSec) || 60);
+    S.recupSec = Math.max(0, Number(recupSec) || 0);
+    S.sec = S.effortSec;
+    S.duration = S.effortSec;
+    S.title = title || 'Chrono';
+    S.running = true;
+
+    setTxt('inline-timer-start', '⏸ Pause');
+    setTxt('timer-start-btn', '⏸ Pause');
+
+    const mini = $('mini-timer-sticky');
+    if(mini) mini.classList.add('on');
+
+    wakeLock();
+    updateTimerDisplay();
+    startLoop();
+  };
+
+  window.toggleTimer = function(){
+    if(S.sec <= 0){
+      S.sec = S.effortSec || 60;
+      S.duration = S.effortSec || 60;
+    }
+
+    S.running = !S.running;
+
+    setTxt('inline-timer-start', S.running ? '⏸ Pause' : '▶ Reprendre');
+    setTxt('timer-start-btn', S.running ? '⏸ Pause' : '▶ Reprendre');
+    setTxt('mini-timer-toggle', S.running ? '⏸' : '▶');
+
+    if(S.running){
+      wakeLock();
+      const mini = $('mini-timer-sticky');
+      if(mini) mini.classList.add('on');
+      startLoop();
+    } else {
+      clearInterval(S.interval);
+    }
+
+    updateTimerDisplay();
+  };
+
+  window.stopTimer = function(){
+    clearInterval(S.interval);
+    S.running = false;
+    S.sec = 0;
+    setTxt('inline-timer-start', '▶ Démarrer');
+    setTxt('timer-start-btn', '▶ Démarrer');
+
+    const mini = $('mini-timer-sticky');
+    if(mini) mini.classList.remove('on');
+
+    updateTimerDisplay();
+  };
+
+  window.resetInlineTimer = function(reps, effortSec, title){
+    clearInterval(S.interval);
+
+    S.reps = Math.max(1, Number(reps) || 1);
+    S.rep = 1;
+    S.phase = 'effort';
+    S.effortSec = Math.max(1, Number(effortSec) || 60);
+    S.recupSec = 0;
+    S.sec = S.effortSec;
+    S.duration = S.effortSec;
+    S.title = title || S.title || 'Chrono';
+    S.running = false;
+
+    setTxt('inline-timer-start', '▶ Démarrer');
+    setTxt('timer-start-btn', '▶ Démarrer');
+
+    const mini = $('mini-timer-sticky');
+    if(mini) mini.classList.remove('on');
+
+    updateTimerDisplay();
+  };
+
+  window.openTimerModal = function(reps, speedKmh){
+    S.reps = Math.max(1, Number(reps) || 1);
+    S.rep = 1;
+    S.phase = 'effort';
+    S.effortSec = 120;
+    S.recupSec = 60;
+    S.sec = 120;
+    S.duration = 120;
+    S.title = 'Minuteur 2’/1’';
+    S.running = false;
+
+    updateTimerDisplay();
+
+    if(typeof openModal === 'function'){
+      openModal('modal-timer');
+    }
+  };
+
+  // Au changement d'étape, on stoppe le chrono pour éviter un timer fantôme.
+  const originalNext = window.seanceNextStep;
+  if(typeof originalNext === 'function'){
+    window.seanceNextStep = function(){
+      window.stopTimer();
+      return originalNext.apply(this, arguments);
+    };
+  }
+
+  const originalPrev = window.seancePrevStep;
+  if(typeof originalPrev === 'function'){
+    window.seancePrevStep = function(){
+      window.stopTimer();
+      return originalPrev.apply(this, arguments);
+    };
+  }
+
+  // Initialise l'affichage dès qu'une étape est rendue.
+  document.addEventListener('click', function(e){
+    if(e.target && e.target.id === 'inline-timer-start' && !S.running){
+      // Le onclick inline déclenchera startInlineTimer. Ce bloc évite les doubles actions.
+      return;
+    }
+  }, true);
+})();
+</script>
+
 </body>
 </html>
