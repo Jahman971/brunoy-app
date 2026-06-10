@@ -628,6 +628,24 @@ select.input-field option{background:var(--s2)}
     </div>
   </div>
 </div>
+
+<div class="overlay" id="modal-seance-detail" style="align-items:stretch">
+  <div style="display:flex;flex-direction:column;background:var(--s1);width:100%;max-width:480px;
+    margin:0 auto;max-height:100vh;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;
+      padding-top:calc(14px + env(safe-area-inset-top,0px));border-bottom:1px solid var(--brd);flex-shrink:0"
+      id="sdetail-header">
+      <button onclick="closeModal('modal-seance-detail')"
+        style="background:none;border:none;color:var(--gray);font-size:22px;cursor:pointer">←</button>
+      <div style="flex:1;font-family:var(--fnt-head);font-size:17px;font-weight:900;
+        text-transform:uppercase;letter-spacing:1px" id="sdetail-title">Séance</div>
+      <span id="sdetail-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px"></span>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:16px" id="sdetail-content"></div>
+    <div style="flex-shrink:0;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
+      border-top:1px solid var(--brd)" id="sdetail-footer"></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -866,19 +884,20 @@ const LUC_LEGER = {1:8.5,2:9,3:9.5,4:10,5:10.5,6:11,7:11.5,8:12,9:12.5,10:13,11:
 function vmaFromPalier(p){return LUC_LEGER[Math.round(p)] || Math.round(8+p*0.5);}
 function getAllures(vma){
   const r=n=>Math.round(n*10)/10;
-  return {fond:r(vma*.70),seuil:r(vma*.83),vma100:r(vma),puissance:r(vma*1.10),recup:r(vma*.58)};
+  return {fond:r(vma*.70),seuil:r(vma*.83),vma100:r(vma),puissance:r(vma*.93),recup:r(vma*.58)};
 }
 function kmhToMinKm(v){if(!v)return '--';const t=60/v;const m=Math.floor(t);const s=Math.round((t-m)*60);return `${m}'${s<10?'0':''}${s}"`;}
 function getNiveau(vma){if(vma<13)return 'Débutant';if(vma<15)return 'Intermédiaire';if(vma<17)return 'Confirmé';return 'Avancé';}
 function getNiveauNum(vma){if(vma<13)return 0;if(vma<15)return 1;if(vma<17)return 2;return 3;}
 
-// Groupes A/B/C basés sur VMA Luc Léger
-function getGroupe(vma){if(vma>=16.5)return 'A';if(vma>=14)return 'B';return 'C';}
+// Groupes A/B/C — VMA Luc Léger (correspondance IFT 30-15)
+// C ≤ 15 km/h (~IFT ≤ 16.5) · B 15-17 (~IFT 16.5-18.5) · A > 17 (~IFT > 18.5)
+function getGroupe(vma){if(vma>17)return 'A';if(vma>15)return 'B';return 'C';}
 function getGroupeLabel(vma){
   const g=getGroupe(vma);
-  if(g==='A')return {g:'A',label:'Groupe A — Avancé',col:'#a855f7'};
-  if(g==='B')return {g:'B',label:'Groupe B — Intermédiaire',col:'var(--blue)'};
-  return {g:'C',label:'Groupe C — À développer',col:'var(--green)'};
+  if(g==='A')return {g:'A',label:'Groupe A — Avancé',    col:'#EF4444',bg:'rgba(239,68,68,.15)'};
+  if(g==='B')return {g:'B',label:'Groupe B — Intermédiaire',col:'#F59E0B',bg:'rgba(245,158,11,.15)'};
+  return        {g:'C',label:'Groupe C — Fondation',   col:'#3B82F6',bg:'rgba(59,130,246,.15)'};
 }
 
 // Protocole cardio IFT 2'/1' adapté au Luc Léger
@@ -972,6 +991,36 @@ function updateTimerDisplay(){
   g('timer-progress').style.background=isEffort?'var(--red)':'var(--green)';
 }
 
+
+// PPP Guégan — 3 niveaux progressifs (source: fichier de référence)
+function getPPP_niveaux(weekIdx){
+  // weekIdx 0-1 = niveau 1, 2-3 = niveau 2, 4 = niveau 3
+  const niv = weekIdx<=1?1:weekIdx<=3?2:3;
+  const ppps = {
+    1:[
+      {n:'Équilibre sur une jambe',             d:'3×30s/pied — yeux ouverts puis fermés',          note:'Genou légèrement fléchi, bassin stable'},
+      {n:'Gainage ventral',                      d:'3×40s',                                           note:'Dos plat, bassin neutre, respiration continue'},
+      {n:'Gainage latéral',                      d:'3×30s/côté',                                      note:'Corps aligné, hanche haute'},
+      {n:'Proprioception genou',                 d:'2×30s/jambe — balancier de la jambe libre',       note:'Le genou d\'appui reste aligné avec le pied'},
+      {n:'Rotation externe épaule ⭐',            d:'3×15/bras avec élastique léger (ou partenaire)', note:'Protège l\'épaule du lanceur'},
+    ],
+    2:[
+      {n:'Équilibre sur une jambe (dynamique)',  d:'3×45s/pied — bouge les bras pour te déstabiliser', note:'Fixe un point au mur pour garder l\'équilibre'},
+      {n:'Gainage ventral dynamique',            d:'3×45s avec élévations alternées bras/jambe',       note:'Dos plat absolu — la qualité prime sur la durée'},
+      {n:'Gainage latéral dynamique',            d:'3×40s/côté — monte/descends le bassin lentement',  note:'Bassin stable, corps aligné'},
+      {n:'Sauts sur une jambe ⭐',               d:'3×6 sauts/jambe — stabilise 2s à la réception',   note:'Contrôle le genou à la réception'},
+      {n:'Rotation externe épaule (freinage)',   d:'3×12/bras — descente lente 4 secondes',           note:'Descente lente — prévient la tendinite'},
+    ],
+    3:[
+      {n:'Proprioception cheville',              d:'2×45s/pied sur surface instable (coussin)',         note:'Reste stable malgré le déséquilibre'},
+      {n:'Gainage en coordination',              d:'3×50s — enchaîne ventral/latéral/dos, progressif',  note:'Garde le contrôle en accélérant'},
+      {n:'Sauts genou-poitrine stabilisés ⭐',   d:'3×8 sauts — réception sur un pied',                note:'Le genou reste aligné à l\'atterrissage'},
+      {n:'Appuis et changements de direction',   d:'3×10 — déplacements rapides avec relances',         note:'Reste bas, genou aligné, gainé'},
+      {n:'Rotation externe en position d\'armer','d':'3×15/bras élastique — coude haut',              note:'Reproduit le geste de tir'},
+    ]
+  };
+  return {niveau:niv, exos:ppps[niv]};
+}
 // ══ HELPERS MATÉRIEL ══
 function hasMat(j,t){const m=j.materiel||[];if(t==='salle')return m.includes('Salle de muscu');if(t==='elast')return m.includes('Élastiques')||m.includes('Salle de muscu');return true;}
 function mTag(t){
@@ -982,163 +1031,129 @@ function mTag(t){
 
 function genSessionA(weekIdx, joueur){
   const vma=joueur.vma||13, a=getAllures(vma);
-  const phases=['Fondation','Construction I','Construction II','Intensification','Affûtage'];
-  const ph=phases[weekIdx]||'Fondation';
   const gr=getGroupe(vma), gl=getGroupeLabel(vma);
   const proto=CARDIO_PROTO[weekIdx]||CARDIO_PROTO[0];
-  const pct=proto.pct[gr], reps=proto.reps, speed=Math.round(vma*pct*10)/10;
-  const pace=kmhToMinKm(speed);
+  const pct=proto.pct[gr], reps=proto.reps;
+  const speed=Math.round(vma*pct*10)/10;
+  const speedRecup=Math.round(vma*.58*10)/10;
+  const phases=['Fondation','Construction I','Construction II','Intensification','Décharge'];
+  const ph=phases[weekIdx]||'Fondation';
+  const ppp=getPPP_niveaux(weekIdx);
+  const isDecharge=weekIdx===4;
   const tags=['cardio','ppp'];
-  if(weekIdx>=2) tags.push('vma');
 
-  // Allure récup (footing lent entre blocs)
-  const speedRecup=Math.round(vma*.60*10)/10;
+  const noteCourse=isDecharge
+    ?'Semaine allégée — reste sur une allure confortable'
+    :`Utilise le minuteur 2\'/1\' intégré · Distance/effort ≈ ${Math.round(speed*2/60*1000)}m`;
 
-  const cardioBloc={
-    titre:`Cardio intermittent — ${proto.vol}`,
-    detail:`<strong>${reps} × 2 min</strong> à <strong>${speed} km/h</strong> (${pace}/km) · Récup 1 min à ${speedRecup} km/h entre chaque bloc`,
-    note:`Groupe ${gr} · ${Math.round(pct*100)}% VMA — <span style="color:var(--blue);cursor:pointer;font-weight:600" onclick="openTimerModal(${reps},${speed})">⏱️ Lancer le minuteur 2'/1'</span>`,
-    timer:{reps, speed}
-  };
-
-  const nordicDetail=hasMat(joueur,'salle')
-    ?'3 × 6 rép. · talons sous la barre · descente 4-5s contrôlée'
-    :'3 × 6 rép. · talons fixés partenaire ou meuble · descente 4-5s';
+  const pppBlocs=ppp.exos.map(e=>({
+    titre:e.n, detail:e.d, note:e.note, isPPP:true
+  }));
 
   return {
-    titre:`PPP + Cardio Intermittent ${proto.sem}`,
-    obligatoire:true, tags, type:'PPP + Cardio', phase:ph, semaine:weekIdx+1,
-    groupe:gl,
+    titre:`Cardio + Prévention`,
+    type:'Cardio', typeColor:'var(--red)', typeIcon:'🏃',
+    obligatoire:true, tags,
+    phase:ph, semaine:weekIdx+1, groupe:gl,
+    duree:'50-60 min',
+    notePoste:null,
     blocs:[
-      {id:'ech',titre:'Échauffement PPP Guégan'+mTag('none'),
-       detail:'9-12 min · 3 phases progressives<br>• Mise en train (3 min) : mobilisation étagée bas vers haut<br>• Activation (4 min) : rythme + excentrique léger<br>• Dynamique (4 min) : vitesse max, anti-valgus',
-       ppp:'echauffement'},
-      cardioBloc,
-      {id:'nordic',titre:'Nordic Curl ⭐'+mTag(hasMat(joueur,'salle')?'salle':'none'),detail:nordicDetail,ppp:'nordic'},
-      {id:'proprio_chev',titre:'Proprioception Cheville'+mTag('none'),
-       detail:'• Équilibre unipodal : 3 × 30s/pied (yeux ouverts → fermés)<br>• Sauts + réception stabilisée : 3 × 8/pied · stabiliser 2-3s',
-       ppp:'proprio_cheville'},
-      {id:'etir',titre:'Étirements globaux'+mTag('none'),detail:'8-10 min · chaînes post., épaules, hanches, quadriceps',ppp:'etirements'},
+      {titre:'Échauffement',      detail:'8 min footing progressif + mobilité articulaire', duree:480, icone:'🔥'},
+      {titre:`Course fractionnée — ${reps} × (2 min effort / 1 min récup)`,
+       detail:`${reps} fois : 2 min à <strong>${speed} km/h</strong> (${kmhToMinKm(speed)}/km)<br>puis 1 min récup en trot lent à <strong>${speedRecup} km/h</strong>`,
+       note:noteCourse, duree:reps*180, icone:'🏃',
+       hasTimer:true, timerReps:reps, timerSpeed:speed},
+      {titre:`Prévention PPP — Niveau ${ppp.niveau}/3`, detail:'', icone:'🛡️', isPPP:true, pppExos:ppp.exos,
+       note:`Semaine ${weekIdx+1} — niveau progressif`},
+      {titre:'Retour au calme', detail:'5 min marche + 8 min étirements (ischio, quadri, mollets, épaules)', duree:780, icone:'🧘'},
     ]
   };
 }
 
 function genSessionB(weekIdx, joueur){
   const vma=joueur.vma||13, nn=getNiveauNum(vma);
-  const phases=['Fondation','Construction I','Construction II','Intensification','Affûtage'];
+  const poste=joueur.poste||'';
+  const phases=['Fondation','Construction I','Construction II','Intensification','Décharge'];
   const ph=phases[weekIdx]||'Fondation';
-  const tags=['force','ppp'];
   const hasSalle=hasMat(joueur,'salle'), hasElast=hasMat(joueur,'elast');
-  const isGardien=joueur.poste?.includes('Gardien'), isPivot=joueur.poste?.includes('Pivot')||joueur.poste?.includes('Demi');
-  let titre, circuitBlocs, nbCircuits;
+  const ppp=getPPP_niveaux(weekIdx);
+  const nbCircuits=weekIdx<=1?2:3;
 
-  // Circuit de base (PDF S2) — adapté au matériel et au niveau
-  if(weekIdx===0){
-    titre='Circuit Renfo + PPP — Fondation';
-    nbCircuits=hasSalle?4:3;
-    circuitBlocs=[
-      {titre:`Circuit ${nbCircuits} × (60-75s récup entre exercices)`+mTag('none'),
-       detail:`${hasSalle?'<strong>12 squats barre légère</strong>':'<strong>12 squats poids du corps</strong>'} · ${hasSalle?'<strong>10 fentes haltères/jambe</strong>':'<strong>10 fentes/jambe</strong>'} · <strong>12 pompes</strong> · <strong>10 hip bridges unipodaux/jambe</strong> · <strong>30s gainage frontal</strong> · <strong>20s chaise murale</strong>`,
-       note:`Récup 2 min entre chaque circuit · ${nbCircuits} passages complets`},
-    ];
-  } else if(weekIdx<=2){
-    titre='Circuit Renfo Intensifié + PPP';
-    nbCircuits=hasSalle?4:3;
-    const squat=hasSalle?'12 squats sautés lestés légers':'12 squats sautés';
-    const lunge=hasSalle?'10 fentes bulgares/jambe':'10 fentes sautées/jambe';
-    circuitBlocs=[
-      {titre:`Circuit ${nbCircuits} × (45s récup entre exercices)`+mTag(hasSalle?'salle':'none'),
-       detail:`<strong>${squat}</strong> · <strong>${lunge}</strong> · <strong>12 pompes claquées</strong> · <strong>10 hip bridges explosifs/jambe</strong> · <strong>30s gainage latéral/côté</strong> · <strong>20s chaise murale</strong>`,
-       note:`Récup 90s entre chaque circuit · Intensité progressive`},
-    ];
-  } else {
-    titre='Circuit Renfo Peak + PPP';
-    nbCircuits=hasSalle?5:4;
-    const squat=hasSalle?'8 squats lourds':'10 squats bulgares/jambe';
-    circuitBlocs=[
-      {titre:`Circuit ${nbCircuits} × (30s récup entre exercices)`+mTag(hasSalle?'salle':'none'),
-       detail:`<strong>${squat}</strong> · <strong>8 fentes explosives/jambe</strong> · <strong>10 pompes archer</strong> · <strong>10 hip bridges unilatéraux/jambe</strong> · <strong>30s gainage dynamique</strong>`,
-       note:`Récup 2 min entre circuits · Dernière grosse charge force`},
-    ];
-  }
+  // Note spécifique au poste (source: fichier de référence)
+  const notesPoste={
+    'Gardien':'🧤 Gardien : insiste sur le Nordic Curl et les rotateurs d\'épaule — tes articulations encaissent le plus',
+    'Pivot':'💪 Pivot : attaque le squat et les fentes avec intention — ta puissance se construit ici',
+    'Ailier G':'⚡ Ailier : travaille l\'explosivité sur les pompes et la stabilité à la réception des fentes',
+    'Ailier D':'⚡ Ailier : travaille l\'explosivité sur les pompes et la stabilité à la réception des fentes',
+    'Arrière G':'🎯 Arrière : squat et nordic curl sont tes exercices clés — construis ta base de puissance',
+    'Arrière D':'🎯 Arrière : squat et nordic curl sont tes exercices clés — construis ta base de puissance',
+    'Demi-centre':'🔁 Demi-centre : balance parfaite force/mobilité — soigne les fentes et le gainage',
+  };
+  const notePoste=notesPoste[poste]||null;
 
-  const fixatDetail=hasElast?'2-3 × 6-8 · rotation externe + rétropulsion avec élastique':'2-3 × 6-8 pompes bras tendus · mobilisation omoplates';
-  const rotDetail=hasElast?'3 × 15 / sens · coude au corps · freiner retour lentement':'3 × 6-8 / bras · excentrique dos au partenaire · freiner 3 secondes';
-  const nordicDetail=hasSalle?'3 × 6 · talons sous barre · descente 4-5s':'3 × 6 · talons fixés partenaire ou meuble · descente 4-5s';
-  const matLvl=hasSalle?'salle':hasElast?'elast':'none';
+  const circuitDetail=`<strong>${nbCircuits} passages</strong> du circuit — récup 2 min entre chaque :<br>
+    • Squat poids du corps : <strong>12 rép</strong> · descente 3s, montée dynamique · genoux dans l\'axe<br>
+    • Fentes marchées : <strong>10/jambe</strong> · grand pas avant, genou à 90°<br>
+    • Pompes : <strong>${nn===0?8:12} rép</strong> · corps aligné tête-talons<br>
+    • Hip bridges unilatéraux : <strong>10/jambe</strong> · 2s en haut · hanches symétriques<br>
+    • Gainage ventral : <strong>30s</strong> · dos plat, fessiers serrés<br>
+    • Chaise au mur : <strong>20s</strong> · genoux à 90°`;
 
   return {
-    titre, obligatoire:true, tags, type:'Force + Anti-Blessure', phase:ph, semaine:weekIdx+1,
+    titre:'Renforcement Fonctionnel',
+    type:'Force', typeColor:'#3B82F6', typeIcon:'💪',
+    obligatoire:true, tags:['force','ppp'],
+    phase:ph, semaine:weekIdx+1,
+    duree:'45-55 min',
+    notePoste,
     blocs:[
-      {id:'ech_art',titre:'Échauffement articulaire'+mTag('none'),detail:'8 min · épaules, hanches, chevilles, genoux + 3 × 10 squats légers'},
-      ...circuitBlocs,
-      {id:'ppp_genou',titre:'PPP Genou'+mTag('none'),
-       detail:'• Squat unipodal (chaise) : 3 × 8/jambe · alignement genou-pied<br>• Fentes contrôlées : 3 × 10/jambe · descente 3s · genou aligné<br>• Hip bridge unipodal : 3 × 10/jambe · tenir 2s en haut',
-       ppp:'proprio_genou'},
-      {id:'fixateurs',titre:'Fixateurs d\'Omoplates ⭐'+mTag(hasElast?'elast':'none'),detail:fixatDetail,ppp:'fixateurs_omoplate'},
-      {id:'rotateurs',titre:'Rotateurs Ext. Épaule ⭐'+mTag(hasElast?'elast':'none'),detail:rotDetail,ppp:'rotateurs_epaule'},
-      {id:'gainage',titre:'Gainage Tronc'+mTag('none'),
-       detail:'• Planche frontale : 3 × 40s<br>• Planche latérale : 3 × 30s/côté<br>• Planche dynamique : toucher épaule opposée, 3 × 20 · bassin fixe'},
-      {id:'nordic',titre:'Nordic Curl ⭐'+mTag(matLvl),detail:nordicDetail,ppp:'nordic'},
-      {id:'etir',titre:'Étirements globaux'+mTag('none'),detail:'8-10 min systématiques',ppp:'etirements'},
+      {titre:'Échauffement articulaire', detail:'8 min · épaules, hanches, chevilles, genoux · progressif', duree:480, icone:'🔥'},
+      {titre:`Circuit Renforcement — ${nbCircuits} passages`, detail:circuitDetail, icone:'💪',
+       note:'Qualité du mouvement > vitesse — genoux dans l\'axe à chaque squat et fente'},
+      {titre:'Nordic Curl ⭐', detail:'3 × 6 rép · descente lente 4-5 secondes · remonter avec les mains',
+       note:'Exercice n°1 anti-blessure handball — réduit les lésions ischios jusqu\'à 50%', icone:'⭐', duree:null},
+      {titre:`Prévention PPP — Niveau ${ppp.niveau}/3`, detail:'', icone:'🛡️', isPPP:true, pppExos:ppp.exos},
+      {titre:'Retour au calme', detail:'8 min étirements · ischio, quadri, adducteurs, épaules · 20-30s par groupe', duree:480, icone:'🧘'},
     ]
   };
 }
 
 function genSessionC(weekIdx, joueur){
-  const vma=joueur.vma||13, nn=getNiveauNum(vma);
-  const phases=['Fondation','Construction I','Construction II','Intensification','Affûtage'];
+  const vma=joueur.vma||13, a=getAllures(vma);
+  const poste=joueur.poste||'';
+  const isGardien=poste==='Gardien';
+  const phases=['Fondation','Construction I','Construction II','Intensification','Décharge'];
   const ph=phases[weekIdx]||'Fondation';
-  const hasSalle=hasMat(joueur,'salle'), hasElast=hasMat(joueur,'elast');
-  let titre, mainBloc;
 
-  if(weekIdx===0){
-    titre='Coordination & Qualité d\'Appuis';
-    mainBloc=[
-      {titre:'Éducatifs de course'+mTag('none'),detail:'3 × 20m · montées genoux, talons-fesses, skipping',note:'Focus qualité du geste'},
-      {titre:'Accélérations progressives'+mTag('none'),detail:'4-6 × 30m · de 60% à 90%',note:''},
-      {titre:'Agilité handball'+mTag('none'),detail:'3× : 5m latéral D → 5m latéral G → 360°',note:''},
-      ...(hasElast?[{titre:'Déplacements défensifs — élastique'+mTag('elast'),detail:'3 × 15m · élastique aux chevilles · bas du corps actif',note:'Spécifique défense handball'}]:[]),
-    ];
-  } else if(weekIdx===1){
-    const ns=nn===0?6:nn===1?8:10;
-    titre='Sprints & Changements de Direction';
-    mainBloc=[
-      {titre:'Sprints 10m'+mTag('none'),detail:`${ns} × 10m départ arrêté · récup 45s`,note:'Chronomètre-toi !'},
-      {titre:'Sprints 20m'+mTag('none'),detail:`${Math.round(ns*.75)} × 20m · récup 60s`,note:''},
-      {titre:'Carioca & Slalom'+mTag('none'),detail:'4 × 15m aller-retour',note:''},
-      ...(hasSalle?[{titre:'Box Jump'+mTag('salle'),detail:`3 × 6 · caisse 40-60cm · réception souple`,note:''}]:
-         hasElast?[{titre:'Sprint résisté élastique'+mTag('elast'),detail:`4 × 15m · partenaire tient l\'élastique`,note:'Renforce la phase de poussée'}]:[]),
-    ];
-  } else if(weekIdx===2){
-    titre='Pliométrie & Explosivité';
-    mainBloc=[
-      {titre:'Pliométrie basse — Sauts latéraux'+mTag('none'),detail:'3-4 × 20s · sauts explosifs alternés',ppp:'pliometrie_basse'},
-      {titre:'Pied athlétique'+mTag('none'),detail:'4 × 6 sauts · genoux verrouillés · rebonds pieds',ppp:'pied_athletique'},
-      {titre:'Sauts groupés'+mTag('none'),detail:`3 × 6 sauts genou-poitrine`,note:''},
-      ...(hasSalle?[{titre:'Drop Jump (contrebas)'+mTag('salle'),detail:`3 × 5 · descente caisse 40cm → rebond explosif`,note:'Force réactive max'}]:[]),
-    ];
-  } else {
-    titre='Spécifique Handball Haute Intensité';
-    mainBloc=[
-      {titre:'Sprints répétés'+mTag('none'),detail:`3 séries × 5 sprints 15m · récup 30s`,note:'Reproduit les efforts de match'},
-      {titre:'Pliométrie latérale stabilisée'+mTag('none'),detail:'4 × 6 / côté · stabilisation 2s',ppp:'pliometrie_basse'},
-      {titre:'Débordements + pliométrie'+mTag('none'),detail:'3-5 enchaînements',note:''},
-      ...(hasSalle?[{titre:'Squat jump lesté'+mTag('salle'),detail:`3 × 6 · gilet lesté · explosif`,note:''}]:
-         hasElast?[{titre:'Sprint résisté élastique'+mTag('elast'),detail:`4 × 10m · résistance max`,note:''}]:[]),
-    ];
-  }
+  const blocs=[
+    {titre:'Au choix : vélo, natation ou footing léger', icone:'🚴',
+     detail:`30 à 40 min à allure très tranquille (60-70% de ton max).<br>Footing : vise environ <strong>${a.recup} km/h</strong> (${kmhToMinKm(a.recup)}/km).`,
+     note:'Tu dois finir frais, pas fatigué — c\'est de la récupération active'},
+    {titre:'Mobilité & souplesse', icone:'🤸', duree:600,
+     detail:'10 min · hanches, épaules, chevilles, dos · mouvements lents et amples',
+     note:'Idéal pour relâcher les tensions de la semaine'},
+    {titre:'Étirements', icone:'🧘', duree:600,
+     detail:'10 min · ischio, quadriceps, mollets, adducteurs, épaules · 20-30s par étirement',
+     note:'Sans à-coups, sensation de tension seulement'},
+  ];
+
+  if(isGardien) blocs.splice(2,0,{
+    titre:'Spécial Gardien — Épaules & Hanches', icone:'🧤',
+    detail:'Rotateurs d\'épaule à l\'élastique 3×15/bras + fentes latérales lentes 3×8/côté',
+    note:'Tes articulations encaissent le plus — entretiens-les même en récup'
+  });
 
   return {
-    titre, obligatoire:false, tags:['vitesse','ppp'], type:'Vitesse + Explosivité (facultatif)',
+    titre:'Récupération Active',
+    type:'Récup', typeColor:'#22C55E', typeIcon:'🧘',
+    obligatoire:false, tags:['vitesse'],
     phase:ph, semaine:weekIdx+1,
-    blocs:[
-      {id:'ech_dyn',titre:'Échauffement dynamique'+mTag('none'),detail:'12 min · trot progressif + éducatifs + accélérations'},
-      ...mainBloc,
-      {id:'proprio',titre:'Proprioception Cheville'+mTag('none'),detail:'2 × 30s / jambe · unipodal + sauts stabilisés',ppp:'proprio_cheville'},
-    ]
+    duree:'30-40 min',
+    notePoste:isGardien?'🧤 Séance spécialement adaptée pour les gardiens':null,
+    blocs
   };
 }
+
 function genPhase2Sessions(weekIdx, joueur){
   return [genSessionA(weekIdx,joueur), genSessionB(weekIdx,joueur), genSessionC(weekIdx,joueur)];
 }
@@ -1761,22 +1776,47 @@ function showProgWeek(weekIdx){
   const j=currentJoueur;
   const wl=getPhase2WeemLabel(weekIdx);
   const sessions=genPhase2Sessions(weekIdx,j);
-  const sessionLabels=['PPP + Cardio','Force + Anti-blessure','Vitesse (facultatif)'];
+  const sessJours=['Lundi','Mercredi','Vendredi'];
+  const typeColors={Cardio:'var(--red)',Force:'#3B82F6',Récup:'#22C55E'};
+
   let h=`<div class="card card-red" style="margin-bottom:12px">
     <div style="font-family:var(--fnt-head);font-size:16px;font-weight:700;text-transform:uppercase;letter-spacing:1px">${wl.phase}</div>
-    <div style="font-size:12px;color:var(--gray)">${wl.label}</div>
+    <div style="font-size:11px;color:var(--gray)">${wl.label}</div>
   </div>`;
+
   sessions.forEach((sess,idx)=>{
     const done=(j.seances_validees||[]).find(s=>s.weekIdx===weekIdx&&s.sessionIdx===idx&&!s.missed);
     const missed=(j.seances_validees||[]).find(s=>s.weekIdx===weekIdx&&s.sessionIdx===idx&&s.missed);
-    h+=`<div class="day-row ${done?'done':''} ${missed?'missed':''}">
-      <div class="day-label">Séance ${idx+1} ${done?'<span style="color:var(--green)">✓ Validée</span>':missed?'<span style="color:var(--gray)">Manquée</span>':sess.obligatoire?'<span style="color:var(--red)">Obligatoire</span>':'<span style="color:var(--gray)">Facultative</span>'}</div>
-      <div class="day-session-name">${sess.titre}</div>
-      <div style="margin:4px 0">${renderTags(sess.tags)}</div>
-      <button class="expand-btn" onclick="toggleWeekDetail('prog-detail-${weekIdx}-${idx}')">▼ Voir le détail</button>
-      <div id="prog-detail-${weekIdx}-${idx}" style="display:none;margin-top:10px">
-        ${sess.blocs.map((b,bi)=>renderBloc(b,bi)).join('')}
+    const tc=typeColors[sess.type]||'var(--red)';
+    const todayStr=new Date().toISOString().split('T')[0];
+
+    h+=`<div style="background:var(--s2);border:1px solid ${done?'rgba(34,197,94,.3)':'var(--brd)'};
+      border-left:4px solid ${done?'rgba(34,197,94,.6)':tc};border-radius:var(--rL);
+      padding:14px;margin-bottom:10px;opacity:${missed?.6:1}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${tc}">
+            ${sess.typeIcon} ${sessJours[idx]}${done?' · ✓ Fait':''}${sess.obligatoire===false?' · Facultative':''}
+          </div>
+          <div style="font-family:var(--fnt-head);font-size:17px;font-weight:700;color:var(--white)">${sess.titre}</div>
+        </div>
+        ${sess.groupe?`<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;background:${sess.groupe.bg};color:${sess.groupe.col}">Gr. ${sess.groupe.g}</span>`:''}
       </div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+        ${(sess.tags||[]).map(t=>`<span class="tag tag-${t}">${t.charAt(0).toUpperCase()+t.slice(1)}</span>`).join('')}
+        ${sess.duree?`<span style="font-size:10px;color:var(--gray)">⏱ ${sess.duree}</span>`:''}
+        ${sess.notePoste?`<span style="font-size:10px;color:var(--yellow)">📌 Note ${sess.type}</span>`:''}
+      </div>
+      ${(sess.blocs||[]).slice(0,3).filter(b=>!b.isPPP).map(b=>`
+        <div style="font-size:12px;color:var(--gray);margin-bottom:2px">• ${b.titre}</div>`).join('')}
+      ${!done&&!missed?`<button onclick="ouvrirSeanceDetail(${weekIdx},${idx})"
+        style="width:100%;background:none;border:1px solid ${tc}33;border-radius:8px;
+        padding:10px;color:${tc};font-family:var(--fnt-head);font-size:13px;font-weight:700;
+        letter-spacing:1px;text-transform:uppercase;cursor:pointer;margin-top:10px">
+        Voir la séance complète →
+      </button>`:`<div style="font-size:12px;color:${done?'var(--green)':'var(--gray)'};margin-top:8px;text-align:center">
+        ${done?`✅ Séance validée · RPE ${done.rpe||'—'}/10`:'❌ Séance manquée'}
+      </div>`}
     </div>`;
   });
   g('prog-week-content').innerHTML=h;
@@ -1823,37 +1863,69 @@ async function renderProgP3(){return renderProgCollective('p3');}
 function renderJoueurStats(){
   if(!currentJoueur) return;
   const j=currentJoueur, stats=getStats(j);
-  const val=(j.seances_validees||[]).filter(s=>!s.rpe===false&&s.rpe);
-  const last8=val.filter(s=>s.rpe).slice(-8);
-  let rpeChart='';
-  if(last8.length){
-    rpeChart=`<div class="card"><div class="card-title">Évolution RPE</div>
-    <div style="display:flex;align-items:flex-end;gap:4px;height:60px;margin-top:8px">
-      ${last8.map(s=>{const c=s.rpe>=8?'var(--red)':s.rpe>=6?'var(--yellow)':'var(--green)';return `<div style="flex:1;background:${c};height:${s.rpe*10}%;border-radius:3px 3px 0 0;opacity:.8" title="RPE ${s.rpe}"></div>`;}).join('')}
+  const val=(j.seances_validees||[]).filter(s=>!s.missed);
+  const gr=getGroupeLabel(j.vma||13);
+
+  let h=`<div class="sec-title">Mes <span class="accent">Stats</span></div>
+  <div class="sec-sub">Préparation Estivale 2026</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+    <div class="stat-box" style="border-top:2px solid var(--red)"><div class="stat-val val-red">${stats.total}</div><div class="stat-lbl">Séances</div></div>
+    <div class="stat-box" style="border-top:2px solid ${stats.assiduite>=70?'var(--green)':stats.assiduite>=40?'var(--yellow)':'var(--red)'}">
+      <div class="stat-val" style="color:${stats.assiduite>=70?'var(--green)':stats.assiduite>=40?'var(--yellow)':'var(--red)'}">${stats.assiduite}%</div>
+      <div class="stat-lbl">Assiduité</div></div>
+    <div class="stat-box"><div class="stat-val">${stats.serie}</div><div class="stat-lbl">Série 🔥</div></div>
+    <div class="stat-box"><div class="stat-val">${stats.rpe_moy||'—'}</div><div class="stat-lbl">RPE moy.</div></div>
+  </div>`;
+
+  // Progress bar global
+  const semActuelle=getPhase2Week()+1;
+  const totalPrevu=Math.max(1,semActuelle*2);
+  const pct=Math.min(100,Math.round(stats.total/totalPrevu*100));
+  h+=`<div class="card" style="margin-bottom:12px">
+    <div class="card-title">Avancement programme</div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--gray);margin-bottom:6px">
+      <span>${stats.total} / ${totalPrevu} séances prévues</span><span>${pct}%</span>
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:4px"><span>← Ancien</span><span>Récent →</span></div>
+    <div style="height:10px;background:var(--s3);border-radius:5px;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:${pct>=70?'var(--green)':pct>=40?'var(--yellow)':'var(--red)'};border-radius:5px;transition:width .5s"></div>
+    </div>
+  </div>`;
+
+  // Détail par semaine
+  h+=`<div class="card" style="margin-bottom:12px"><div class="card-title">Détail par semaine</div>`;
+  for(let s=0;s<5;s++){
+    const wl=getPhase2WeemLabel(s);
+    const d0=(j.seances_validees||[]).filter(v=>v.weekIdx===s&&!v.missed).length;
+    h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--gray);width:28px">S${s+1}</div>
+      <div style="flex:1;display:flex;gap:3px">
+        ${[0,1,2].map(i=>{
+          const v=(j.seances_validees||[]).find(x=>x.weekIdx===s&&x.sessionIdx===i);
+          const col=v?v.missed?'rgba(239,68,68,.3)':'rgba(34,197,94,.3)':'var(--s3)';
+          return `<div style="flex:1;height:22px;border-radius:4px;background:${col};display:flex;align-items:center;justify-content:center;font-size:10px">${v?v.missed?'✗':'✓':''}</div>`;
+        }).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--gray)">${d0}/3</div>
     </div>`;
   }
-  g('joueur-page-stats').innerHTML=`
-    <div class="sec-title">Mes <span class="accent">Stats</span></div>
-    <div class="sec-sub">Prépa Été 2026</div>
-    <div class="stats-row">
-      <div class="stat-box" style="border-top:2px solid var(--red)"><div class="stat-val val-red">${stats.total}</div><div class="stat-lbl">Séances</div></div>
-      <div class="stat-box" style="border-top:2px solid var(--green)"><div class="stat-val val-green">${stats.assiduite}%</div><div class="stat-lbl">Assiduité</div></div>
-      <div class="stat-box" style="border-top:2px solid var(--yellow)"><div class="stat-val val-yellow">${stats.serie}</div><div class="stat-lbl">Série</div></div>
-    </div>
-    ${rpeChart}
-    <div class="card"><div class="card-title">Profil Physique</div>
-      <div class="row-between"><span class="text-gray">VMA</span><strong style="color:var(--red)">${j.vma||'—'} km/h</strong></div>
-      <div class="row-between"><span class="text-gray">Niveau</span><strong>${getNiveau(j.vma||13)}</strong></div>
-      <div class="row-between"><span class="text-gray">Poste</span><strong>${j.poste||'—'}</strong></div>
-    </div>
-    <div class="card card-red"><div class="card-title">Mes Allures</div>${renderAllures(j.vma||13)}</div>`;
+  h+=`</div>`;
+
+  // Groupe + allures
+  h+=`<div class="card card-red"><div class="card-title" style="color:${gr.col}">Groupe ${gr.g} · ${gr.label}</div>${renderAllures(j.vma||13)}</div>`;
+
+  // Badges
+  const earned=(j.badges||[]);
+  h+=`<div class="card"><div class="card-title">Badges (${earned.length}/${BADGES.length})</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+      ${BADGES.map(b=>{const got=earned.includes(b.id);return `<div style="text-align:center;opacity:${got?1:.2}" title="${b.name}: ${b.desc}">
+        <div style="font-size:26px">${b.icon}</div>
+        <div style="font-size:9px;color:var(--gray);margin-top:2px;line-height:1.2">${b.name}</div>
+      </div>`;}).join('')}
+    </div></div>`;
+
+  g('joueur-page-stats').innerHTML=h;
 }
 
-// ══════════════════════════════════════════════════
-// JOUEUR — PROFIL
-// ══════════════════════════════════════════════════
 function renderJoueurProfil(){
   if(!currentJoueur) return;
   const j=currentJoueur;
@@ -2181,6 +2253,112 @@ async function clearAnnonce(){
 
 
 
+
+// ══════════════════════════════════════════════════
+// DÉTAIL SÉANCE — vue étape par étape
+// ══════════════════════════════════════════════════
+let _detailWeekIdx=-1, _detailSessIdx=-1;
+
+function ouvrirSeanceDetail(weekIdx, sessIdx){
+  if(!currentJoueur) return;
+  _detailWeekIdx=weekIdx; _detailSessIdx=sessIdx;
+  const j=currentJoueur;
+  const sessions=genPhase2Sessions(weekIdx,j);
+  const sess=sessions[sessIdx];
+  if(!sess) return;
+
+  const tc=sess.typeColor||'var(--red)';
+  const wl=getPhase2WeemLabel(weekIdx);
+  const sessJours=['Lundi','Mercredi','Vendredi'];
+  const todayStr=new Date().toISOString().split('T')[0];
+  const done=(j.seances_validees||[]).find(s=>s.weekIdx===weekIdx&&s.sessionIdx===sessIdx&&!s.missed);
+
+  // Header
+  g('sdetail-title').textContent=sess.titre;
+  g('sdetail-header').style.borderBottomColor=tc+'44';
+  const badge=g('sdetail-badge');
+  badge.textContent=`${sess.typeIcon} ${sess.type}`;
+  badge.style.background=tc+'22'; badge.style.color=tc;
+
+  // Résumé
+  let h=`<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+    <span style="font-size:13px;color:var(--gray)">⏱ ${sess.duree||'45-60 min'}</span>
+    <span style="font-size:13px;color:var(--gray)">· ${sessJours[sessIdx]} · ${wl.phase}</span>
+    ${sess.obligatoire===false?'<span style="font-size:10px;background:rgba(148,163,184,.12);color:#94A3B8;padding:3px 8px;border-radius:8px">Facultative</span>':''}
+    ${sess.groupe?`<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;background:${sess.groupe.bg};color:${sess.groupe.col}">Groupe ${sess.groupe.g}</span>`:''}
+  </div>`;
+
+  // Note de poste
+  if(sess.notePoste) h+=`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
+    border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--yellow);margin-bottom:14px;line-height:1.6">
+    ${sess.notePoste}</div>`;
+
+  // Étapes
+  h+=`<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray);margin-bottom:10px">Détail étape par étape</div>`;
+
+  (sess.blocs||[]).forEach((b,bi)=>{
+    if(b.isPPP){
+      // PPP block — show exercises
+      h+=`<div style="background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.2);
+        border-radius:var(--rL);margin-bottom:8px;overflow:hidden">
+        <button onclick="toggleWeekDetail('sd-bloc-${bi}')" style="width:100%;background:none;border:none;
+          display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;text-align:left">
+          <span style="font-size:22px">🛡️</span>
+          <span style="flex:1">
+            <span style="display:block;font-weight:700;font-size:15px;color:var(--white)">${bi+1}. ${b.titre}</span>
+            <span style="font-size:12px;color:var(--green)">Prévention blessures · à faire en solo</span>
+          </span>
+          <span style="font-size:14px;color:var(--dim)">▸</span>
+        </button>
+        <div id="sd-bloc-${bi}" style="display:none;padding:0 14px 14px">
+          ${(b.pppExos||[]).map(ex=>`
+            <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15);
+              border-radius:8px;padding:12px;margin-bottom:6px">
+              <div style="font-weight:600;font-size:14px;color:var(--white);margin-bottom:3px">${ex.n}</div>
+              <div style="font-size:13px;color:var(--light)">${ex.d}</div>
+              ${ex.note?`<div style="font-size:12px;color:var(--green);margin-top:4px">💡 ${ex.note}</div>`:''}
+            </div>`).join('')}
+        </div>
+      </div>`;
+    } else {
+      const dureeLabel=b.duree?(b.duree>=60?Math.round(b.duree/60)+' min':b.duree+'s'):'';
+      h+=`<div style="background:var(--s2);border:1px solid var(--brd);border-radius:var(--rL);
+        margin-bottom:8px;overflow:hidden">
+        <button onclick="toggleWeekDetail('sd-bloc-${bi}')" style="width:100%;background:none;border:none;
+          display:flex;align-items:center;gap:12px;padding:14px;cursor:pointer;text-align:left">
+          <span style="font-size:22px;flex-shrink:0">${b.icone||'📌'}</span>
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-weight:700;font-size:15px;color:var(--white)">${bi+1}. ${b.titre}</span>
+            ${dureeLabel?`<span style="font-size:12px;color:var(--gray)">⏱ ${dureeLabel}</span>`:''}
+          </span>
+          <span style="font-size:14px;color:var(--dim)">▸</span>
+        </button>
+        <div id="sd-bloc-${bi}" style="display:none;padding:0 14px 14px">
+          <div style="font-size:13px;color:var(--light);line-height:1.7">${b.detail||''}</div>
+          ${b.note?`<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.15);
+            border-radius:6px;padding:8px 10px;font-size:12px;color:var(--yellow);margin-top:8px">💡 ${b.note}</div>`:''}
+          ${b.hasTimer?`<button onclick="openTimerModal(${b.timerReps},${b.timerSpeed})"
+            style="width:100%;margin-top:10px;background:var(--red2);border:1px solid var(--red);
+            border-radius:8px;padding:10px;color:var(--red);font-family:var(--fnt-head);font-size:13px;
+            font-weight:700;letter-spacing:1px;cursor:pointer">⏱️ Minuteur 2\'/1\'</button>`:''}
+        </div>
+      </div>`;
+    }
+  });
+
+  g('sdetail-content').innerHTML=h;
+
+  // Footer
+  if(done){
+    g('sdetail-footer').innerHTML=`<div style="text-align:center;color:var(--green);font-weight:700;font-size:14px">✅ Séance validée · RPE ${done.rpe||'—'}/10</div>`;
+  } else {
+    g('sdetail-footer').innerHTML=`<div style="display:flex;gap:8px">
+      <button onclick="ouvrirRPE('${todayStr}',${weekIdx},${sessIdx})" class="btn btn-primary" style="flex:1">✅ J\'ai fait cette séance !</button>
+      <button onclick="marquerManquee('${todayStr}',${weekIdx},${sessIdx});closeModal('modal-seance-detail')" class="btn btn-missed" style="width:auto;padding:12px 14px;font-size:12px">❌</button>
+    </div>`;
+  }
+  openModal('modal-seance-detail');
+}
 // ══════════════════════════════════════════════════
 // SELF-REGISTRATION
 // ══════════════════════════════════════════════════
