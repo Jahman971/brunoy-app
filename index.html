@@ -4183,10 +4183,10 @@ window.addEventListener('load',()=>{
       if(!S.running) return;
 
       const now = Date.now();
-      const diff = Math.max(1, Math.floor((now - S.lastTick) / 1000));
+      const diff = Math.floor((now - S.lastTick) / 1000);
 
       if(diff < 1) return;
-      S.lastTick = now;
+      S.lastTick += diff * 1000;
       S.sec -= diff;
 
       if(S.sec <= 0){
@@ -4214,7 +4214,7 @@ window.addEventListener('load',()=>{
       }
 
       updateTimerDisplay();
-    }, 250);
+    }, 1000);
   }
 
   window.startInlineTimer = function(reps, speedKmh, effortSec, recupSec, title){
