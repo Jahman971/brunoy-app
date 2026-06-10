@@ -368,6 +368,124 @@ select.input-field option{background:var(--s2)}
 .video-demo-btn{margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
 .video-demo-btn.disabled{opacity:.45;pointer-events:none;color:var(--gray)!important;border-color:var(--brd)!important}
 
+
+
+/* ─────────────────────────────────────────────
+   V9 — CONFORT VISUEL / DALTONISME
+   Objectif : rouge = identité/action, blanc = lecture,
+   vert = progression/validation, orange = attention.
+───────────────────────────────────────────── */
+:root{
+  --bg:#090909!important;
+  --s1:#111111!important;
+  --s2:#171717!important;
+  --s3:#232323!important;
+  --brd:#404040!important;
+  --red:#D91C1C!important;
+  --red2:rgba(217,28,28,.18)!important;
+  --red3:rgba(217,28,28,.08)!important;
+  --green:#22C55E!important;
+  --yellow:#F59E0B!important;
+  --white:#FFFFFF!important;
+  --light:#D1D5DB!important;
+  --gray:#A3A3A3!important;
+  --dim:#737373!important;
+}
+
+html,body{background:var(--bg)!important;color:var(--white)!important}
+.card,.bloc,.day-row,.stat-box,.player-row,.lb-row,.guided-info-card,.guided-step-row,.guided-mini,.sess-manage-row,.traine-row{background:var(--s2)!important;border-color:var(--brd)!important}
+.app-header,.bottom-nav,.guided-top,.guided-footer,.modal,.toast{background:var(--s1)!important;border-color:var(--brd)!important}
+
+/* Lecture : le rouge ne sert plus aux longs textes */
+.sec-title,.card-title,.today-title,.guided-title,.guided-step-title,.guided-overview-title,.guided-step-name,.day-session-name,.player-name,.lb-name,.step-title{color:var(--white)!important}
+.sec-sub,.today-meta,.bloc-detail,.guided-step-summary,.guided-info-text,.guided-mini-label,.player-meta,.text-gray,.input-label{color:var(--light)!important}
+
+/* Labels lisibles : texte blanc + repère rouge à gauche */
+.guided-info-label,.inline-timer-label,.today-eyebrow,.day-label,.phase3-date{
+  color:var(--white)!important;
+}
+.guided-info-label{
+  border-left:4px solid var(--red)!important;
+  padding-left:10px!important;
+  line-height:1.25!important;
+}
+
+/* Barre de progression : vert = progression */
+.guided-progress-fill,.step-progress-fill,.inline-timer-fill{
+  background:var(--green)!important;
+}
+.phase-seg-inner.current{background:rgba(217,28,28,.16)!important;border-color:var(--red)!important}
+.phase-seg-inner.done{background:rgba(34,197,94,.13)!important;border-color:rgba(34,197,94,.45)!important}
+
+/* Boutons : contraste renforcé */
+.btn-primary{background:var(--red)!important;color:#FFFFFF!important;border:1px solid #F87171!important}
+.btn-secondary{background:#232323!important;color:#FFFFFF!important;border:1px solid #525252!important}
+.btn-ghost{background:#171717!important;color:#FFFFFF!important;border:1px solid #D91C1C!important}
+.btn-green{background:#16A34A!important;color:#FFFFFF!important;border:1px solid #22C55E!important}
+.bnav-btn.active{color:#FFFFFF!important;background:rgba(217,28,28,.10)!important}
+.bnav-btn{color:#BDBDBD!important}
+
+/* Alertes / conseils */
+.guided-warning,.warn-box{
+  background:#2A2112!important;
+  border:1px solid var(--yellow)!important;
+  color:#FFFFFF!important;
+}
+.guided-tip,.card-green{
+  background:#0F2B1B!important;
+  border:1px solid var(--green)!important;
+  color:#FFFFFF!important;
+}
+.card-red,.today-card,.inline-timer-card{
+  background:linear-gradient(135deg,rgba(217,28,28,.12),rgba(255,255,255,.035))!important;
+  border-color:rgba(248,113,113,.55)!important;
+}
+
+/* Tags plus lisibles */
+.tag{color:#FFFFFF!important;font-weight:800!important;border-color:#525252!important}
+.tag-cardio{background:#1E3A5F!important}
+.tag-force{background:#5F1E1E!important}
+.tag-vitesse,.tag-optionnel{background:#4A3512!important}
+.tag-ppp{background:#4A2E12!important}
+
+/* Inputs */
+.input-field,.landing-input{background:#171717!important;border-color:#525252!important;color:#FFFFFF!important}
+.input-field::placeholder,.landing-input::placeholder{color:#A3A3A3!important}
+
+/* Timer */
+.inline-timer-display,.mini-timer-time{color:#FFFFFF!important;text-shadow:0 0 16px rgba(255,255,255,.08)}
+.mini-timer-label{color:#FFFFFF!important}
+.mini-timer-sticky{background:#0B0B0B!important;border-top:1px solid rgba(217,28,28,.65)!important}
+
+/* Liens vidéos */
+a[href*="youtube"],.video-btn{
+  background:#232323!important;
+  color:#FFFFFF!important;
+  border:1px solid #F59E0B!important;
+  border-radius:10px!important;
+  text-decoration:none!important;
+}
+
+/* Landing : identité conservée mais plus compacte/lisible */
+.landing-logo .red{color:#FFFFFF!important;border-bottom:3px solid var(--red)!important}
+.landing-sub,.landing-footer{color:var(--light)!important}
+.landing-badge{color:#FFFFFF!important;border-color:rgba(217,28,28,.65)!important;background:rgba(217,28,28,.16)!important}
+
+/* Header club : rouge gardé pour identité, avec meilleur contraste */
+.header-club{color:#FFFFFF!important}
+.header-club::after{content:'';display:block;width:42px;height:3px;background:var(--red);border-radius:999px;margin-top:3px}
+
+/* Tables coach */
+.wg-table th{background:#232323!important;color:#FFFFFF!important;border-color:#525252!important}
+.wg-table td{border-color:#404040!important;color:#FFFFFF!important}
+.wg-name{background:#171717!important;color:#FFFFFF!important}
+
+/* Accessibilité mobile extérieur */
+.guided-step-summary,.guided-info-text,.bloc-detail{font-size:16px!important;line-height:1.75!important}
+@media(max-width:380px){
+  .guided-step-summary,.guided-info-text,.bloc-detail{font-size:15px!important}
+}
+
 </style>
 </head>
 <body>
