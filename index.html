@@ -362,6 +362,12 @@ select.input-field option{background:var(--s2)}
 .guided-body{padding-bottom:300px!important}
 @media(max-width:380px){.inline-timer-display{font-size:52px}.mini-timer-time{font-size:28px}.mini-timer-actions button{padding:8px 9px;font-size:11px}}
 
+
+
+/* V7 — vidéos d'explication exercices */
+.video-demo-btn{margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+.video-demo-btn.disabled{opacity:.45;pointer-events:none;color:var(--gray)!important;border-color:var(--brd)!important}
+
 </style>
 </head>
 <body>
@@ -740,6 +746,12 @@ select.input-field option{background:var(--s2)}
       border-top:1px solid var(--brd)" id="sdetail-footer"></div>
   </div>
 </div>
+
+
+
+<!-- V8 : vidéos ouvertes directement dans YouTube pour éviter l’erreur iframe 153 -->
+
+
 <div class="toast" id="toast"></div>
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -4342,6 +4354,130 @@ window.addEventListener('load',()=>{
       return;
     }
   }, true);
+})();
+</script>
+
+
+
+<script>
+/* V7 — Bibliothèque vidéos + remplacement du rendu des fiches exercice */
+(function(){
+  const EXERCISE_VIDEO_LIBRARY = [{"exercice": "Équilibre sur une jambe (proprioception cheville)", "mots_cles": "équilibre sur une jambe, équilibre unipod, proprioception cheville", "video": "https://www.youtube.com/watch?v=b9hIDxXukbY", "position": "Debout sur une jambe, genou légèrement fléchi (jamais verrouillé), regard sur un point fixe devant toi.", "execution": "Tiens la position en restant stable. Progression : 1) yeux ouverts, 2) yeux fermés, 3) sur surface instable (coussin).", "respiration": "Calme et continue.", "tempo": "Maintien statique sur la durée.", "erreurs": "Genou complètement verrouillé | Regard qui se balade | Poser le pied trop souvent", "conseil": "Profite du brossage de dents : 30s sur chaque pied, yeux fermés.", "adaptation_materiel": ""}, {"exercice": "Proprioception genou (anti-valgus)", "mots_cles": "proprioception genou, anti-valgus, proprio genou", "video": "https://www.youtube.com/watch?v=b9hIDxXukbY", "position": "Sur une jambe, genou fléchi ~20°, tronc droit. Jambe libre légèrement levée.", "execution": "Petits balanciers de la jambe libre en gardant le genou d'appui aligné avec le pied. Le genou ne rentre jamais vers l'intérieur.", "respiration": "Continue.", "tempo": "Lent et contrôlé.", "erreurs": "⚠️ Genou qui rentre (valgus = risque LCA) | Tronc qui penche | Aller trop vite", "conseil": "Imagine un laser partant de ton genou : il pointe toujours vers ton 2e orteil.", "adaptation_materiel": ""}, {"exercice": "Nordic curl (ischio-jambiers)", "mots_cles": "nordic curl, nordic", "video": "https://www.youtube.com/watch?v=kNfR1jycNmA", "position": "À genoux, buste droit aligné aux cuisses, pieds bloqués (meuble lourd ou partenaire).", "execution": "Penche-toi lentement vers l'avant, corps droit, en freinant avec l'arrière des cuisses. Pose les mains au sol pour amortir puis pousse pour revenir.", "respiration": "Inspire avant, expire à la descente.", "tempo": "⭐ Descente très lente : 4 à 5 secondes.", "erreurs": "Descendre trop vite | Casser au niveau des hanches | Pieds mal bloqués", "conseil": "Sans partenaire : talons sous un canapé. Vise 3×5 au début, la qualité prime.", "adaptation_materiel": "Avec élastique en hauteur derrière toi pour t'aider à freiner."}, {"exercice": "Rotation externe épaule (rotateurs/élastique)", "mots_cles": "rotation externe, rotateur, rotateurs, épaule", "video": "https://www.youtube.com/watch?v=LFYAczR6XKY", "position": "Debout, coude collé au corps et plié à 90°. Élastique ancré sur le côté. Serviette roulée entre coude et corps.", "execution": "Tourne l'avant-bras vers l'extérieur en gardant le coude collé, comme pour ouvrir une porte. Reviens lentement.", "respiration": "Expire en tirant, inspire au retour.", "tempo": "Lent et contrôlé, surtout au retour.", "erreurs": "⚠️ Décoller le coude du corps | Élastique trop résistant | Mouvement trop rapide", "conseil": "3×15 par bras, élastique léger. À faire avant chaque séance avec les épaules.", "adaptation_materiel": "Pas d'élastique ? Petite bouteille d'eau ou mouvement lent à vide en contractant."}, {"exercice": "Gainage ventral / frontal", "mots_cles": "gainage ventral, gainage frontal, gainage en coordination", "video": "https://www.youtube.com/watch?v=hoPwUu8vvvw", "position": "Sur les avant-bras et pointes de pieds, coudes sous les épaules, corps en ligne droite.", "execution": "Maintiens immobile en serrant abdos et fessiers. Version dynamique : lève alternativement un bras ou une jambe sans bouger le bassin.", "respiration": "Normale et continue — ne bloque pas.", "tempo": "Statique sur la durée.", "erreurs": "Fesses trop hautes ou affaissées | Cambrer le bas du dos | Bloquer la respiration", "conseil": "Mieux vaut 30s parfaitement gainé que 1 min le dos creux.", "adaptation_materiel": ""}, {"exercice": "Gainage latéral", "mots_cles": "gainage latéral", "video": "https://www.youtube.com/watch?v=hoPwUu8vvvw", "position": "Sur un avant-bras, coude sous l'épaule, corps sur le côté, jambes empilées.", "execution": "Soulève le bassin pour former une ligne droite. Maintiens. Version dynamique : monte/descends le bassin lentement.", "respiration": "Normale et continue.", "tempo": "Statique ou lent.", "erreurs": "Bassin qui s'affaisse | Rotation du buste | Épaule collée à l'oreille", "conseil": "Trop dur ? Pose le genou du dessous au sol pour réduire le levier.", "adaptation_materiel": ""}, {"exercice": "Squat poids du corps", "mots_cles": "squat", "video": "", "position": "Pieds largeur d'épaules, pointes légèrement vers l'extérieur, poitrine ouverte.", "execution": "Pousse les fesses vers l'arrière comme pour t'asseoir, descends cuisses parallèles au sol, remonte en poussant dans les talons.", "respiration": "Inspire en descendant, expire en remontant.", "tempo": "3s descente, remontée dynamique.", "erreurs": "⚠️ Genoux qui rentrent | Talons qui décollent | Dos qui s'arrondit", "conseil": "Imagine que tu t'assois sur une chaise basse derrière toi.", "adaptation_materiel": ""}, {"exercice": "Fentes", "mots_cles": "fente", "video": "", "position": "Debout, pieds joints, mains sur les hanches.", "execution": "Grand pas en avant, descends jusqu'à genou avant à 90° et genou arrière près du sol. Pousse sur la jambe avant.", "respiration": "Inspire en descendant, expire en remontant.", "tempo": "Contrôlé, descente lente.", "erreurs": "Pas trop petit (genou dépasse le pied) | Buste penché | Genou avant qui part vers l'intérieur", "conseil": "Fais-les en avançant dans un couloir : 10 pas par jambe.", "adaptation_materiel": ""}, {"exercice": "Hip bridge (pont fessier)", "mots_cles": "hip bridge, pont fessier", "video": "", "position": "Allongé sur le dos, genoux fléchis, pieds à plat. Unilatéral : une jambe tendue en l'air.", "execution": "Monte le bassin en serrant les fessiers jusqu'à aligner épaules-hanches-genou. Tiens 2s, redescends lentement.", "respiration": "Expire en montant.", "tempo": "Montée contrôlée, 2s en haut.", "erreurs": "Cambrer le dos au lieu de serrer les fessiers | Monter trop vite | Bassin qui bascule", "conseil": "Version 1 jambe : 3×10 par côté, excellent pour ischios et fessiers.", "adaptation_materiel": ""}, {"exercice": "Pompes", "mots_cles": "pompe", "video": "", "position": "Mains au sol un peu plus larges que les épaules, corps gainé en ligne droite.", "execution": "Descends en pliant les coudes jusqu'à frôler le sol, pousse pour remonter.", "respiration": "Inspire en descendant, expire en poussant.", "tempo": "2s descente, montée dynamique.", "erreurs": "Fesses qui montent ou creusent | Coudes trop écartés | Demi-amplitude", "conseil": "Trop dur ? Genoux au sol ou pompes inclinées contre un mur/table.", "adaptation_materiel": "Sur les genoux ou inclinées contre un support pour débuter."}, {"exercice": "Chaise au mur", "mots_cles": "chaise au mur, chaise mur", "video": "", "position": "Dos plaqué au mur, glisse jusqu'à cuisses parallèles au sol (genoux à 90°).", "execution": "Maintiens immobile sur la durée.", "respiration": "Normale.", "tempo": "Statique.", "erreurs": "Genoux qui dépassent les pieds | Position trop haute | Bloquer la respiration", "conseil": "Mains sur les cuisses sans appui — tout le travail dans les jambes.", "adaptation_materiel": ""}, {"exercice": "Sauts sur une jambe / réception stabilisée", "mots_cles": "sauts sur une jambe, sauts genou-poitrine, sauts unipod, réception, stabilis", "video": "https://www.youtube.com/watch?v=b9hIDxXukbY", "position": "Sur une jambe ou deux, genoux souples.", "execution": "Saute puis réceptionne en douceur en pliant les genoux. Stabilise 2-3s à chaque réception.", "respiration": "Souffle sur le saut.", "tempo": "Explosif à la montée, réception douce.", "erreurs": "⚠️ Réception jambes tendues | Genou qui rentre à l'atterrissage | Réception raide", "conseil": "L'important n'est pas de sauter haut mais de te réceptionner parfaitement stable.", "adaptation_materiel": ""}, {"exercice": "Appuis / changements de direction", "mots_cles": "appuis, changements de direction, débordement, parcours", "video": "", "position": "Position athlétique : genoux fléchis, bassin bas, sur l'avant des pieds.", "execution": "Enchaîne les déplacements (latéraux, changements de direction) en restant bas et réactif. Plante le pied extérieur pour relancer.", "respiration": "Régulière.", "tempo": "Rapide mais contrôlé.", "erreurs": "Se redresser dans les changements de direction | Appuis lents | Regarder ses pieds", "conseil": "Pose 4 plots et chronomètre-toi pour suivre ta progression.", "adaptation_materiel": ""}, {"exercice": "Course fractionnée (cardio 2'/1')", "mots_cles": "course fractionnée, fractionn", "video": "", "position": "Terrain plat ou piste. Prépare ton chrono ou le minuteur de l'app.", "execution": "Alterne 2 min d'effort soutenu (à l'allure affichée) puis 1 min de récup en trot lent. Répète le nombre de fois indiqué. Allure régulière, ne pars pas trop vite.", "respiration": "Profonde et rythmée à l'effort, calme sur la récup.", "tempo": "2 min effort / 1 min récup.", "erreurs": "Partir trop vite et exploser à la fin | Récup trop rapide | Sauter l'échauffement", "conseil": "Respecte l'allure en km/h : c'est elle qui rend la séance efficace. Utilise le minuteur 2'/1'.", "adaptation_materiel": ""}, {"exercice": "Circuit de renforcement", "mots_cles": "circuit", "video": "", "position": "Espace dégagé, bouteille d'eau à portée.", "execution": "Enchaîne tous les exercices du circuit sans grosse pause. Une fois le tour fini, récupère 2 min, puis recommence le nombre de tours indiqué.", "respiration": "Souffle sur l'effort.", "tempo": "Fluide dans un tour, récup entre les tours.", "erreurs": "Bâcler la technique avec la fatigue | Ne pas récupérer entre les tours | Vitesse au détriment de la qualité", "conseil": "Un tour propre vaut mieux qu'un tour rapide mal fait. La technique avant la vitesse.", "adaptation_materiel": ""}, {"exercice": "Récupération active (vélo/natation/footing)", "mots_cles": "vélo, natation, footing léger, récupération active, au choix", "video": "", "position": "Choisis : vélo, natation, ou footing très tranquille.", "execution": "30 à 40 min à intensité TRÈS légère (tu peux parler sans être essoufflé). But : faire circuler le sang, aider à récupérer.", "respiration": "Facile.", "tempo": "Lent et confortable.", "erreurs": "Transformer la récup en séance intense | Forcer alors qu'il faut récupérer", "conseil": "Séance facultative mais précieuse : elle accélère la récupération.", "adaptation_materiel": ""}, {"exercice": "Mobilité & souplesse", "mots_cles": "mobilité, souplesse", "video": "", "position": "Debout puis au sol, espace dégagé.", "execution": "Mobilise en douceur hanches, épaules, chevilles, dos. Mouvements amples et progressifs, sans forcer.", "respiration": "Lente et profonde.", "tempo": "Lent et contrôlé.", "erreurs": "Mouvements brusques | Forcer une amplitude douloureuse", "conseil": "Parfait en récup pour relâcher les tensions de la semaine.", "adaptation_materiel": ""}, {"exercice": "Étirements", "mots_cles": "étirement, stretching, retour au calme", "video": "", "position": "Au calme, au sol ou debout, après l'effort.", "execution": "Étire chaque grand groupe (ischios, quadriceps, mollets, adducteurs, épaules), 20-30s par étirement, sans à-coups.", "respiration": "Lente, expire en allongeant.", "tempo": "Maintien 20-30s.", "erreurs": "Étirer à froid avant l'effort | Forcer jusqu'à la douleur | Faire des rebonds", "conseil": "Sensation de tension = OK. Douleur = trop loin, relâche.", "adaptation_materiel": ""}, {"exercice": "Échauffement", "mots_cles": "échauffement", "video": "", "position": "Tenue de sport, espace dégagé.", "execution": "Monte progressivement : trot léger, mobilité articulaire, puis gammes dynamiques et quelques accélérations.", "respiration": "Progressive.", "tempo": "Intensité croissante.", "erreurs": "⚠️ Sauter l'échauffement | Étirements statiques longs avant l'effort | Démarrer trop fort", "conseil": "10 min minimum. Tu dois avoir chaud et le cœur qui monte avant d'attaquer.", "adaptation_materiel": ""}];
+  window.EXERCISE_VIDEO_LIBRARY = EXERCISE_VIDEO_LIBRARY;
+
+  function normText(v){
+    return String(v||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+  function escapeHtml(v){
+    return String(v||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function jsArg(v){
+    return String(v||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' ');
+  }
+  window.findExerciseVideo = function(title){
+    const t=normText(title);
+    if(!t) return null;
+    let best=null, score=0;
+    for(const item of EXERCISE_VIDEO_LIBRARY){
+      const name=normText(item.exercice);
+      const keys=normText(item.mots_cles);
+      let s=0;
+      if(t===name) s+=100;
+      if(name && (t.includes(name) || name.includes(t))) s+=50;
+      for(const k of keys.split(' ').filter(x=>x.length>=4)){ if(t.includes(k)) s+=3; }
+      if(t.includes('ppp') && (name.includes('proprioception') || name.includes('rotation externe') || name.includes('gainage'))) s+=2;
+      if(s>score){best=item;score=s;}
+    }
+    return score>0 ? best : null;
+  };
+  window.exerciseVideoButton = function(title){
+    const item=window.findExerciseVideo(title);
+    if(!item) return '';
+    if(item.video){
+      return `<a class="btn btn-ghost btn-sm video-demo-btn" href="${escapeHtml(item.video)}" target="_blank" rel="noopener noreferrer">🎥 Voir la démonstration</a>`;
+    }
+    return `<button class="btn btn-ghost btn-sm video-demo-btn disabled">🎥 Vidéo à compléter</button>`;
+  };
+
+  function getAdviceFromLibrary(title, fallback){
+    const item=window.findExerciseVideo(title);
+    if(!item) return fallback;
+    return {
+      position: item.position || fallback.position,
+      respiration: item.respiration || fallback.respiration,
+      tempo: item.tempo || fallback.tempo,
+      erreurs: (item.erreurs ? String(item.erreurs).split('|').map(x=>x.trim()).filter(Boolean) : fallback.erreurs),
+      conseil: item.conseil || fallback.conseil,
+      execution: item.execution || ''
+    };
+  }
+
+  window.renderStepBloc = renderStepBloc = function(b, bi){
+    if(b.isPPP){
+      return `<div class="guided-step-screen">
+        <div class="guided-step-icon-big">🛡️</div>
+        <div class="guided-step-title">${b.titre}</div>
+        <div class="guided-step-summary">Prévention blessures · à faire proprement, sans vitesse.</div>
+        <div class="guided-info-card">
+          ${(b.pppExos||[]).map((ex,xi)=>{
+            const itemTitle = ex.n || ex.titre || '';
+            const item = window.findExerciseVideo(itemTitle);
+            const videoBtn = item && item.video
+              ? `<a class="btn btn-ghost btn-sm video-demo-btn" href="${escapeHtml(item.video)}" target="_blank" rel="noopener noreferrer">🎥 Voir la démonstration</a>`
+              : (item ? `<button class="btn btn-ghost btn-sm video-demo-btn disabled">🎥 Vidéo à compléter</button>` : '');
+            return `<div class="guided-ppp-exo"><strong>${xi+1}. ${itemTitle}</strong><br>${ex.d||''}${ex.note?`<div style="color:var(--green);margin-top:5px">💡 ${ex.note}</div>`:''}${videoBtn}</div>`;
+          }).join('')}
+          <div class="guided-tip"><strong>💡 Conseil</strong><br>La prévention compte autant que le cardio. Tu dois sentir le contrôle, pas la fatigue maximale.</div>
+        </div>
+      </div>`;
+    }
+    let a=getExerciseAdvice(b);
+    a=getAdviceFromLibrary(b.titre, a);
+    const timerTitle = String(b.titre||'Chrono').replace(/'/g,"\\'");
+    const chrono = b.hasTimer
+      ? `<div class="inline-timer-card" id="inline-timer-card">
+          <div class="inline-timer-label" id="inline-timer-label">⏱ ${b.timerReps||1} × effort / récup</div>
+          <div class="inline-timer-display" id="inline-timer-display">2:00</div>
+          <div class="inline-timer-rep" id="inline-timer-rep">Bloc 1 / ${b.timerReps||1}</div>
+          <div class="inline-timer-progress"><div class="inline-timer-fill" id="inline-timer-fill"></div></div>
+          <div class="inline-timer-actions">
+            <button class="btn btn-primary" id="inline-timer-start" onclick="startInlineTimer(${b.timerReps||1},${b.timerSpeed||0},120,60,'${timerTitle}')">▶ Démarrer</button>
+            <button class="btn btn-secondary" style="width:auto;padding:14px 16px" onclick="stopTimer();resetInlineTimer(${b.timerReps||1},120,'${timerTitle}')">↺</button>
+          </div>
+        </div>`
+      : (b.duree?`<div class="inline-timer-card" id="inline-timer-card">
+          <div class="inline-timer-label" id="inline-timer-label">⏱ ${timerTitle}</div>
+          <div class="inline-timer-display" id="inline-timer-display">${fmtTimerShort(b.duree)}</div>
+          <div class="inline-timer-rep" id="inline-timer-rep">Chrono simple</div>
+          <div class="inline-timer-progress"><div class="inline-timer-fill" id="inline-timer-fill"></div></div>
+          <div class="inline-timer-actions">
+            <button class="btn btn-primary" id="inline-timer-start" onclick="startInlineTimer(1,0,${b.duree},0,'${timerTitle}')">▶ Démarrer</button>
+            <button class="btn btn-secondary" style="width:auto;padding:14px 16px" onclick="stopTimer();resetInlineTimer(1,${b.duree},'${timerTitle}')">↺</button>
+          </div>
+        </div>`:'');
+    const execText = a.execution || splitExecDetail(b.detail);
+    return `<div class="guided-step-screen">
+      <div class="guided-step-icon-big">${b.icone||'📌'}</div>
+      <div class="guided-step-title">${b.titre}</div>
+      <div class="guided-step-summary">${splitExecDetail(b.detail)}</div>
+      ${b.note?`<div class="guided-warning">💡 ${cleanHtml(b.note)}</div>`:''}
+      ${chrono}
+      <div class="guided-info-card">
+        <div class="guided-info-label">📍 Position</div><div class="guided-info-text">${a.position}</div>
+        <div class="guided-info-label">▶️ Exécution</div><div class="guided-info-text">${execText}</div>
+        ${window.exerciseVideoButton(b.titre)}
+        <div class="guided-mini-grid">
+          <div class="guided-mini"><div class="guided-mini-label">🫁 Respiration</div><div>${a.respiration}</div></div>
+          <div class="guided-mini"><div class="guided-mini-label">⏱ Tempo</div><div>${a.tempo}</div></div>
+        </div>
+        <div class="guided-warning"><strong>⚠️ Erreurs à éviter</strong><ul style="margin:8px 0 0 18px">${a.erreurs.map(e=>`<li>${e}</li>`).join('')}</ul></div>
+        <div class="guided-tip"><strong>💡 Conseil</strong><br>${a.conseil}</div>
+      </div>
+    </div>`;
+  };
 })();
 </script>
 
