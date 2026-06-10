@@ -343,6 +343,25 @@ select.input-field option{background:var(--s2)}
 .guided-ppp-exo{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.18);border-radius:12px;padding:12px;margin:8px 0;text-align:left}
 @media(max-width:380px){.guided-step-title{font-size:31px}.guided-overview-title{font-size:26px}.guided-step-summary{font-size:16px}}
 
+
+/* V3 — timer intégré dans la séance + mini timer fixe */
+.inline-timer-card{background:rgba(200,27,27,.09);border:1px solid rgba(200,27,27,.28);border-radius:18px;padding:16px;margin:10px 0 18px;text-align:center}
+.inline-timer-label{font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:6px}
+.inline-timer-display{font-family:var(--fnt-head);font-size:64px;font-weight:900;line-height:1;color:var(--white);margin:4px 0}
+.inline-timer-rep{font-size:12px;color:var(--gray);margin-bottom:10px}
+.inline-timer-progress{height:6px;background:var(--s3);border-radius:999px;overflow:hidden;margin:10px 0 14px}
+.inline-timer-fill{height:100%;width:0%;background:var(--red);border-radius:999px;transition:width .35s}
+.inline-timer-actions{display:flex;gap:8px}
+.mini-timer-sticky{display:none;position:absolute;left:0;right:0;bottom:calc(74px + env(safe-area-inset-bottom,0px));z-index:8;background:#080808;border-top:1px solid rgba(200,27,27,.35);border-bottom:1px solid var(--brd);padding:10px 16px;box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+.mini-timer-sticky.on{display:flex;align-items:center;gap:12px}
+.mini-timer-main{flex:1;min-width:0}
+.mini-timer-label{font-size:10px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--red);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-timer-time{font-family:var(--fnt-head);font-size:34px;font-weight:900;line-height:1;color:var(--white)}
+.mini-timer-actions{display:flex;gap:6px;flex-shrink:0}
+.mini-timer-actions button{width:auto;padding:9px 10px;font-size:12px;letter-spacing:1px}
+.guided-body{padding-bottom:300px!important}
+@media(max-width:380px){.inline-timer-display{font-size:52px}.mini-timer-time{font-size:28px}.mini-timer-actions button{padding:8px 9px;font-size:11px}}
+
 </style>
 </head>
 <body>
@@ -706,6 +725,17 @@ select.input-field option{background:var(--s2)}
       <span id="sdetail-badge" style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px"></span>
     </div>
     <div style="flex:1;overflow-y:auto;padding:16px" id="sdetail-content"></div>
+    <div id="mini-timer-sticky" class="mini-timer-sticky">
+      <div class="mini-timer-main">
+        <div id="mini-timer-label" class="mini-timer-label">CHRONO</div>
+        <div id="mini-timer-time" class="mini-timer-time">0:00</div>
+      </div>
+      <div class="mini-timer-actions">
+        <button class="btn btn-secondary" id="mini-timer-toggle" onclick="toggleTimer()">⏸</button>
+        <button class="btn btn-primary" onclick="seanceNextStep()">➡</button>
+        <button class="btn btn-missed" onclick="stopTimer();updateMiniTimer(false)">Stop</button>
+      </div>
+    </div>
     <div style="flex-shrink:0;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));
       border-top:1px solid var(--brd)" id="sdetail-footer"></div>
   </div>
@@ -1203,10 +1233,20 @@ function openTimerModal(reps, speed_kmh){
   openModal('modal-timer');
 }
 function toggleTimer(){
-  if(_timerRunning){_timerRunning=false;clearInterval(_timerInterval);g('timer-start-btn').textContent='▶️ Reprendre';}
-  else{_timerRunning=true;g('timer-start-btn').textContent='⏸ Pause';_timerInterval=setInterval(timerTick,1000);}
+  if(_timerRunning){
+    _timerRunning=false;clearInterval(_timerInterval);
+    if(g('timer-start-btn')) g('timer-start-btn').textContent='▶️ Reprendre';
+    if(g('inline-timer-start')) g('inline-timer-start').textContent='▶ Reprendre';
+  }
+  else{
+    _timerRunning=true;
+    if(g('timer-start-btn')) g('timer-start-btn').textContent='⏸ Pause';
+    if(g('inline-timer-start')) g('inline-timer-start').textContent='⏸ Pause';
+    clearInterval(_timerInterval);_timerInterval=setInterval(timerTick,1000);
+  }
+  updateMiniTimer();
 }
-function stopTimer(){clearInterval(_timerInterval);_timerRunning=false;}
+function stopTimer(){clearInterval(_timerInterval);_timerRunning=false;if(g('inline-timer-start'))g('inline-timer-start').textContent='▶ Démarrer';if(g('timer-start-btn'))g('timer-start-btn').textContent='▶️ Démarrer';updateMiniTimer(false);}
 function timerTick(){
   _timerSec--;
   if(_timerSec<=0){
@@ -2380,10 +2420,14 @@ async function validerSeance(){
   if(!currentJoueur.seances_validees) currentJoueur.seances_validees=[];
   currentJoueur.seances_validees.push({date,weekIdx,sessionIdx,rpe:selectedRPE,missed:false,ts:Date.now()});
   closeModal('modal-rpe');
-  showToast('Séance validée ! 💪','success');
+  closeModal('modal-seance-detail');
+  stopTimer();
+  showToast('✅ Séance validée · retour au programme','success');
   await sbSaveJoueur(currentJoueur);
   checkBadges(currentJoueur);
   renderJoueurHome();
+  renderJoueurProgramme();
+  showJoueurPage('programme');
 }
 async function marquerManquee(date,weekIdx,sessionIdx){
   if(!currentJoueur.seances_validees) currentJoueur.seances_validees=[];
@@ -2818,9 +2862,28 @@ function renderStepBloc(b, bi){
     </div>`;
   }
   const a=getExerciseAdvice(b);
+  const timerTitle = String(b.titre||'Chrono').replace(/'/g,"\'");
   const chrono = b.hasTimer
-    ? `<button onclick="openTimerModal(${b.timerReps||1},${b.timerSpeed||0},120,60,'${String(b.titre).replace(/'/g,"\'")}')" class="btn btn-primary" style="margin:8px auto 18px;max-width:360px">⏱ Lancer le chrono 2 min</button>`
-    : (b.duree?`<button onclick="openTimerModal(1,0,${b.duree},0,'${String(b.titre).replace(/'/g,"\'")}')" class="btn btn-primary" style="margin:8px auto 18px;max-width:360px">⏱ Lancer le chrono ${fmtDuration(b.duree)}</button>`:'');
+    ? `<div class="inline-timer-card" id="inline-timer-card">
+        <div class="inline-timer-label" id="inline-timer-label">⏱ ${b.timerReps||1} × effort / récup</div>
+        <div class="inline-timer-display" id="inline-timer-display">2:00</div>
+        <div class="inline-timer-rep" id="inline-timer-rep">Bloc 1 / ${b.timerReps||1}</div>
+        <div class="inline-timer-progress"><div class="inline-timer-fill" id="inline-timer-fill"></div></div>
+        <div class="inline-timer-actions">
+          <button class="btn btn-primary" id="inline-timer-start" onclick="startInlineTimer(${b.timerReps||1},${b.timerSpeed||0},120,60,'${timerTitle}')">▶ Démarrer</button>
+          <button class="btn btn-secondary" style="width:auto;padding:14px 16px" onclick="stopTimer();resetInlineTimer(${b.timerReps||1},120,'${timerTitle}')">↺</button>
+        </div>
+      </div>`
+    : (b.duree?`<div class="inline-timer-card" id="inline-timer-card">
+        <div class="inline-timer-label" id="inline-timer-label">⏱ ${timerTitle}</div>
+        <div class="inline-timer-display" id="inline-timer-display">${fmtTimerShort(b.duree)}</div>
+        <div class="inline-timer-rep" id="inline-timer-rep">Chrono simple</div>
+        <div class="inline-timer-progress"><div class="inline-timer-fill" id="inline-timer-fill"></div></div>
+        <div class="inline-timer-actions">
+          <button class="btn btn-primary" id="inline-timer-start" onclick="startInlineTimer(1,0,${b.duree},0,'${timerTitle}')">▶ Démarrer</button>
+          <button class="btn btn-secondary" style="width:auto;padding:14px 16px" onclick="stopTimer();resetInlineTimer(1,${b.duree},'${timerTitle}')">↺</button>
+        </div>
+      </div>`:'');
   return `<div class="guided-step-screen">
     <div class="guided-step-icon-big">${b.icone||'📌'}</div>
     <div class="guided-step-title">${b.titre}</div>
@@ -2862,6 +2925,34 @@ function seanceNextStep(){_detailStep++;renderSeanceStep();}
 function seancePrevStep(){_detailStep--;renderSeanceStep();}
 function renderSeanceListMode(){renderSeanceOverview();}
 
+function fmtTimerShort(sec){
+  sec=Math.max(0,Number(sec)||0);
+  const m=Math.floor(sec/60), s=sec%60;
+  return m+':'+(s<10?'0':'')+s;
+}
+function startInlineTimer(reps=1, speed_kmh=0, effortSec=120, recupSec=60, title=''){
+  _timerTotalReps=reps||1; _timerRep=1; _timerPhase='effort'; _timerEffortSec=effortSec||120; _timerRecupSec=recupSec||0; _timerSec=_timerEffortSec; _timerRunning=false; _timerTitle=title||'Chrono';
+  window._timerSpeed=speed_kmh;
+  updateTimerDisplay();
+  updateMiniTimer(true);
+  toggleTimer();
+}
+function resetInlineTimer(reps=1, effortSec=120, title='Chrono'){
+  _timerTotalReps=reps||1; _timerRep=1; _timerPhase='effort'; _timerSec=effortSec||120; _timerRunning=false; _timerTitle=title||'Chrono';
+  updateTimerDisplay();
+  updateMiniTimer(false);
+}
+function updateMiniTimer(forceShow){
+  const mini=g('mini-timer-sticky'); if(!mini) return;
+  if(forceShow===false){mini.classList.remove('on');return;}
+  if(_timerRunning || forceShow===true) mini.classList.add('on');
+  const isEffort=_timerPhase==='effort';
+  const label=isEffort ? (window._timerSpeed?`EFFORT · ${window._timerSpeed} km/h` : (_timerTitle||'EFFORT')) : 'RÉCUPÉRATION';
+  if(g('mini-timer-label')) g('mini-timer-label').textContent=label;
+  if(g('mini-timer-time')) g('mini-timer-time').textContent=fmtTimerShort(_timerSec);
+  if(g('mini-timer-toggle')) g('mini-timer-toggle').textContent=_timerRunning?'⏸':'▶';
+}
+
 function openTimerModal(reps=1, speed_kmh=0, effortSec=120, recupSec=60, title=''){
   _timerTotalReps=reps||1; _timerRep=1; _timerPhase='effort'; _timerEffortSec=effortSec||120; _timerRecupSec=recupSec||0; _timerSec=_timerEffortSec; _timerRunning=false; _timerTitle=title||'';
   window._timerSpeed=speed_kmh;
@@ -2874,7 +2965,7 @@ function timerTick(){
   if(_timerSec<=0){
     if(_timerPhase==='effort' && _timerRecupSec>0){_beep(660,.1);_beep(660,.1);_timerPhase='recup';_timerSec=_timerRecupSec;}
     else{
-      if(_timerRep>=_timerTotalReps){_beep(880,.2);_beep(1100,.3);clearInterval(_timerInterval);_timerRunning=false;g('timer-phase-label').textContent='TERMINÉ ! 🎉';g('timer-display').textContent='0:00';g('timer-start-btn').textContent='✅ Fini';return;}
+      if(_timerRep>=_timerTotalReps){_beep(880,.2);_beep(1100,.3);clearInterval(_timerInterval);_timerRunning=false;if(g('timer-phase-label'))g('timer-phase-label').textContent='TERMINÉ ! 🎉';if(g('timer-display'))g('timer-display').textContent='0:00';if(g('timer-start-btn'))g('timer-start-btn').textContent='✅ Fini';if(g('inline-timer-label'))g('inline-timer-label').textContent='TERMINÉ ! 🎉';if(g('inline-timer-display'))g('inline-timer-display').textContent='0:00';if(g('inline-timer-start'))g('inline-timer-start').textContent='✅ Fini';updateMiniTimer(false);return;}
       _beep(440,.15);_timerRep++;_timerPhase='effort';_timerSec=_timerEffortSec;
     }
   }
