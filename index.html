@@ -2821,7 +2821,7 @@ function renderCoachMsgModal(){
   const total=_coachMsgQueue.length;
   const isLast=_coachMsgIdx===total-1;
   g('coach-msg-modal-prev').style.display=_coachMsgIdx>0?'block':'none';
-  g('coach-msg-modal-next').textContent=isLast?'J\\'ai compris 👍':'Suivant →';
+  g('coach-msg-modal-next').textContent=isLast?'J\'ai compris 👍':'Suivant →';
   g('coach-msg-modal-next').onclick=isLast?closeCoachMsgModal:()=>navCoachMsgModal(1);
 
   const dots=g('coach-msg-modal-dots');
