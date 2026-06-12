@@ -221,9 +221,9 @@ select.input-field option{background:var(--s2)}
 .rpe-label{font-size:9px;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
 
 /* ── ANNONCE ── */
-.annonce-card{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.25);border-radius:var(--rL);padding:14px;margin-bottom:12px}
+.annonce-card{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.25);border-radius:var(--rL);padding:14px;margin-bottom:12px;overflow:hidden}
 .annonce-from{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#60a5fa;margin-bottom:5px}
-.annonce-text{font-size:14px;line-height:1.6;color:var(--light)}
+.annonce-text{font-size:14px;line-height:1.6;color:var(--light);word-break:break-word;overflow-wrap:break-word}
 
 /* ── STRIPE (streak) ── */
 .streak-card{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--r);padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
@@ -602,7 +602,7 @@ a[href*="youtube"],.video-btn{
     <div id="coach-msg-modal-icon" style="width:56px;height:56px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px">💬</div>
     <div id="coach-msg-modal-title" style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin-bottom:4px">Message de ton coach</div>
     <div id="coach-msg-modal-date" style="font-size:11px;color:var(--dim);margin-bottom:14px"></div>
-    <div id="coach-msg-modal-text" style="font-size:15px;color:var(--white);line-height:1.65;font-weight:500;margin-bottom:16px;text-align:left"></div>
+    <div id="coach-msg-modal-text" style="font-size:15px;color:var(--white);line-height:1.65;font-weight:500;margin-bottom:16px;text-align:left;word-break:break-word;overflow-wrap:break-word"></div>
     <div id="coach-msg-modal-dots" style="display:flex;justify-content:center;gap:6px;margin-bottom:14px"></div>
     <div style="display:flex;gap:8px">
       <button id="coach-msg-modal-prev" class="btn btn-secondary btn-sm" style="flex:1;display:none" onclick="navCoachMsgModal(-1)">← Précédent</button>
@@ -2244,7 +2244,7 @@ async function renderJoueurHome(){
           <div style="font-size:10px;color:var(--dim)">${formatDate(j.message_coach.date)}</div>
         </div>
       </div>
-      <div style="font-size:15px;color:var(--white);line-height:1.65;font-weight:500">${j.message_coach.text}</div>
+      <div style="font-size:15px;color:var(--white);line-height:1.65;font-weight:500;word-break:break-word;overflow-wrap:break-word">${j.message_coach.text}</div>
     </div>`;
   }
 
