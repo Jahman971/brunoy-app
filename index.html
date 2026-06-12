@@ -2432,7 +2432,7 @@ async function showProgPhase(phaseKey){
   ['p1','p2','p3','p4','p5'].forEach(p=>{g('prog-tab-'+p)?.classList.toggle('active',p===phaseKey);});
   const c=g('prog-phase-content');
   if(phaseKey==='p1') c.innerHTML=renderProgP1();
-  else if(phaseKey==='p2'){c.innerHTML=renderProgP2();setTimeout(()=>showProgWeek(getPhase2Week()),50);}
+  else if(phaseKey==='p2'){c.innerHTML=renderProgP2();}
   else {c.innerHTML='<div class="empty"><div class="empty-icon">⏳</div>Chargement...</div>';c.innerHTML=await renderProgCollective(phaseKey);}
 }
 
@@ -2468,17 +2468,8 @@ function renderProgP2(){
 
 function setProgView(mode){
   window._progViewMode=mode;
-  const c=g('prog-view-content');
-  if(mode==='calendrier'){
-    c.innerHTML='';
-    renderProgCalendar();
-  } else {
-    renderSemainePills(getPhase2Week());
-    setTimeout(()=>showProgWeek(getPhase2Week()),0);
-  }
-  // refresh toggle button states
-  document.querySelectorAll('.week-pill').forEach(b=>{});
-  renderJoueurProgramme(); // re-render top to update toggle highlight + content
+  const c=g('prog-phase-content');
+  if(c) c.innerHTML=renderProgP2();
 }
 
 function renderSemainePills(weekActuel){
