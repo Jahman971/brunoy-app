@@ -2637,6 +2637,8 @@ function renderJoueurProfil(){
       <div class="row-between"><span class="text-gray">Jours d\'entraînement</span><strong>${jrs||'—'}</strong></div>
       <div class="row-between"><span class="text-gray">Matériel</span><strong>${(j.materiel||[]).join(', ')||'—'}</strong></div>
     </div>
+    ${renderPoidsCard(j)}
+    </div>
     <div style="display:flex;gap:8px;margin-bottom:8px">
       <button class="btn btn-ghost" style="flex:1" onclick="openBadges()">🏅 Mes Badges <span id="badge-count-profil" style="color:var(--red)"></span></button>
     </div>
@@ -2647,6 +2649,69 @@ function renderJoueurProfil(){
 }
 
 function deconnexion(){currentJoueur=null;g('login-code').value='';showScreen('landing');}
+
+// ══════════════════════════════════════════════════
+// SUIVI DU POIDS
+// ══════════════════════════════════════════════════
+function renderPoidsCard(j){
+  const hist=j.poids_history||[];
+  const init=j.poidsInitial||j.poids;
+  const now=j.poids;
+  const d=(init&&now)?Math.round((now-init)*10)/10:null;
+  const dStr=d===null?'—':(d>0?'+'+d:''+d);
+  const dCol=d>0?'var(--yellow)':d<0?'var(--green)':'var(--gray)';
+  let histHTML='';
+  if(hist.length>1){
+    const last=hist.slice(-5);
+    histHTML=`<div style="display:flex;gap:4px;margin-top:10px">
+      ${last.map(h=>{
+        const dt=new Date(h.date+'T12:00:00');
+        return `<div style="flex:1;text-align:center;background:var(--s3);border-radius:6px;padding:6px 2px">
+          <div style="font-family:var(--fnt-head);font-size:13px;font-weight:900">${h.poids}</div>
+          <div style="font-size:9px;color:var(--gray)">${dt.getDate()}/${dt.getMonth()+1}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+  return `<div class="card">
+    <div class="card-title">⚖️ Suivi du poids</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div>
+        <div style="font-family:var(--fnt-head);font-size:26px;font-weight:900;color:var(--white)">${now||'—'} <span style="font-size:14px;color:var(--gray)">kg</span></div>
+        ${init&&d!==null?`<div style="font-size:12px;color:${dCol};font-weight:700">${dStr} kg depuis le debut</div>`:''}
+      </div>
+    </div>
+    ${histHTML}
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <input class="input-field" id="poids-update-input" type="number" step="0.1" placeholder="${now||'75'}" style="flex:1">
+      <button class="btn btn-primary btn-sm" style="flex:1" onclick="updatePoids()">Mettre a jour</button>
+    </div>
+  </div>`;
+}
+
+async function updatePoids(){
+  const v=parseFloat(g('poids-update-input')?.value);
+  if(!v||v<30||v>200){showToast('Entre un poids valide (30-200 kg)','error');return;}
+  const j=currentJoueur;
+  if(!j.poidsInitial) j.poidsInitial=j.poids||v;
+  if(!j.poids_history) j.poids_history=[];
+  if(!j.poids_history.length && j.poids){
+    j.poids_history.push({date:new Date().toISOString().split('T')[0],poids:j.poids});
+  }
+  j.poids=v;
+  const todayStr=new Date().toISOString().split('T')[0];
+  const existing=j.poids_history.find(h=>h.date===todayStr);
+  if(existing) existing.poids=v;
+  else j.poids_history.push({date:todayStr,poids:v});
+  showToast('Sauvegarde…','info');
+  const ok=await sbSaveJoueur(j);
+  if(!ok)return;
+  currentJoueur=j;
+  showToast('Poids mis a jour ! ⚖️','success');
+  renderJoueurProfil();
+}
+
+
 
 // ══════════════════════════════════════════════════
 // RPE + VALIDATION
