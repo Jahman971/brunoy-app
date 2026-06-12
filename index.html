@@ -2452,16 +2452,97 @@ function renderProgP2(){
   const j=currentJoueur;
   const weekActuel=getPhase2Week();
   let h=`<div class="sec-sub" style="margin-bottom:8px">14 juillet → 14 août · 2 séances/sem. obligatoires + 1 facultative</div>`;
-  // Week pills
-  h+=`<div class="week-nav">`;
+  // View toggle
+  const vm=window._progViewMode||'semaine';
+  h+=`<div style="display:flex;gap:6px;margin-bottom:14px">
+    <button onclick="setProgView('calendrier')" class="week-pill ${vm==='calendrier'?'active':''}" style="flex:1;text-align:center">📅 Calendrier</button>
+    <button onclick="setProgView('semaine')" class="week-pill ${vm==='semaine'?'active':''}" style="flex:1;text-align:center">📊 Par semaine</button>
+  </div>`;
+  h+=`<div id="prog-view-content"></div>`;
+  setTimeout(()=>{
+    if(vm==='calendrier') renderProgCalendar();
+    else { renderSemainePills(weekActuel); showProgWeek(weekActuel); }
+  },50);
+  return h;
+}
+
+function setProgView(mode){
+  window._progViewMode=mode;
+  const c=g('prog-view-content');
+  if(mode==='calendrier'){
+    c.innerHTML='';
+    renderProgCalendar();
+  } else {
+    renderSemainePills(getPhase2Week());
+    setTimeout(()=>showProgWeek(getPhase2Week()),0);
+  }
+  // refresh toggle button states
+  document.querySelectorAll('.week-pill').forEach(b=>{});
+  renderJoueurProgramme(); // re-render top to update toggle highlight + content
+}
+
+function renderSemainePills(weekActuel){
+  let h=`<div class="week-nav">`;
   for(let w=0;w<5;w++){
-    const wl=getPhase2WeemLabel(w);
     h+=`<button class="week-pill ${w===weekActuel?'current':''}" id="wk-pill-${w}" onclick="showProgWeek(${w})">${w===weekActuel?'📍 ':''}S${w+1}</button>`;
   }
   h+=`</div><div id="prog-week-content"></div>`;
-  setTimeout(()=>showProgWeek(weekActuel),50);
-  return h;
+  g('prog-view-content').innerHTML=h;
 }
+
+// ── Vue Calendrier ──────────────────────────────────────────────────
+const PHASE2_MONDAY=new Date('2026-07-13T00:00:00');
+const MOIS_ABBR=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+const JOURS_ABBR3=['DIM','LUN','MAR','MER','JEU','VEN','SAM'];
+function getSessionDate(weekIdx,sessIdx){
+  const off=[0,2,4][sessIdx];
+  return new Date(PHASE2_MONDAY.getTime()+(weekIdx*7+off)*86400000);
+}
+
+function renderProgCalendar(){
+  if(!currentJoueur) return;
+  const j=currentJoueur;
+  const typeColors={Cardio:'var(--red)',Force:'#3B82F6',Récup:'#22C55E'};
+  const phaseLabels=['Reprise','Construction','Construction','Intensification','Décharge'];
+  let h='';
+  for(let w=0;w<5;w++){
+    const sessions=genPhase2Sessions(w,j);
+    h+=`<div style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin:18px 0 10px">Semaine ${w+1} · ${phaseLabels[w]}</div>`;
+    sessions.forEach((sess,idx)=>{
+      const date=getSessionDate(w,idx);
+      const dayNum=date.getDate();
+      const dayName=JOURS_ABBR3[date.getDay()];
+      const monthName=MOIS_ABBR[date.getMonth()];
+      const tc=typeColors[sess.type]||'var(--red)';
+      const done=(j.seances_validees||[]).find(s=>s.weekIdx===w&&s.sessionIdx===idx&&!s.missed);
+      const missed=(j.seances_validees||[]).find(s=>s.weekIdx===w&&s.sessionIdx===idx&&s.missed);
+      const hasPPP=(sess.blocs||[]).some(b=>b.isPPP);
+      const isBonus=sess.obligatoire===false;
+
+      h+=`<div onclick="ouvrirSeanceDetail(${w},${idx})" style="display:flex;gap:12px;background:var(--s2);
+        border:1px solid ${isBonus?'rgba(34,197,94,.3)':done?'rgba(34,197,94,.25)':'var(--brd)'};
+        border-radius:var(--rL);padding:12px 14px;margin-bottom:10px;cursor:pointer;
+        ${isBonus?'background:rgba(34,197,94,.04);border-style:dashed':''}opacity:${missed?.6:1}">
+        <div style="flex-shrink:0;text-align:center;width:38px">
+          <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--gray)">${dayName}</div>
+          <div style="font-family:var(--fnt-head);font-size:22px;font-weight:900;color:var(--white);line-height:1">${dayNum}</div>
+          <div style="font-size:9px;color:var(--dim)">${monthName}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${tc};margin-bottom:2px">
+            ${sess.typeIcon} ${sess.type}${isBonus?' · Facultative':''}${done?' · ✓ Fait':''}${missed?' · ✗ Manquée':''}
+          </div>
+          <div style="font-family:var(--fnt-head);font-size:16px;font-weight:700;color:var(--white);margin-bottom:6px">${sess.titre}</div>
+          ${(sess.blocs||[]).filter(b=>!b.isPPP).slice(0,2).map(b=>`<div style="font-size:12px;color:var(--gray);margin-bottom:1px">• ${(b.titre||'').replace(/<[^>]*>/g,'')}</div>`).join('')}
+          ${hasPPP?`<div style="font-size:11px;color:var(--green);font-weight:700;margin-top:4px">+ Prévention blessures intégrée</div>`:''}
+        </div>
+      </div>`;
+    });
+  }
+  g('prog-view-content').innerHTML=h;
+}
+
+
 
 function showProgWeek(weekIdx){
   document.querySelectorAll('[id^="wk-pill-"]').forEach((el,i)=>el.classList.toggle('active',i===weekIdx));
