@@ -1826,6 +1826,71 @@ async function sbSaveMeta(key,value){
 // APP STATE
 // ══════════════════════════════════════════════════
 let currentJoueur = null;
+
+// ══════════════════════════════════════════════════
+// PWA — Installation sur l\'écran d\'accueil
+// ══════════════════════════════════════════════════
+let _installPrompt=null;
+let _welcomeStep=0;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  _installPrompt=e;
+  renderWelcomeInstallZone();
+});
+window.addEventListener('appinstalled', ()=>{
+  _installPrompt=null;
+  renderWelcomeInstallZone();
+});
+function isStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+async function triggerInstallFromWelcome(){
+  if(!_installPrompt) return;
+  _installPrompt.prompt();
+  const choice=await _installPrompt.userChoice;
+  if(choice.outcome==='accepted'){
+    _installPrompt=null;
+    renderWelcomeInstallZone();
+  }
+}
+function dismissInstallZone(){
+  localStorage.setItem('pwa_install_dismissed','1');
+  const z=document.getElementById('welcome-install-zone');
+  if(z) z.style.display='none';
+}
+function renderWelcomeInstallZone(){
+  const z=document.getElementById('welcome-install-zone');
+  if(!z) return;
+  if(isStandalone() || localStorage.getItem('pwa_install_dismissed')==='1'){
+    z.style.display='none';
+    return;
+  }
+  z.style.display='block';
+  if(_installPrompt){
+    z.innerHTML=`
+      <div style="position:relative">
+        <button onclick="dismissInstallZone()" style="position:absolute;top:8px;right:8px;background:none;border:none;color:rgba(255,255,255,.6);font-size:16px;cursor:pointer;z-index:1">✕</button>
+        <button onclick="triggerInstallFromWelcome()" style="width:100%;padding:14px;background:linear-gradient(135deg,var(--green),#15c55a);border:none;border-radius:12px;color:white;font-weight:700;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px">
+          <span style="font-size:20px">📲</span> Installer DHB Prépa sur mon téléphone
+        </button>
+        <div style="font-size:11px;color:var(--gray);text-align:center;margin-top:6px">Accès direct depuis ton écran d\'accueil — sans passer par le navigateur</div>
+      </div>`;
+  } else {
+    z.innerHTML=`
+      <div style="background:var(--s2);border-radius:12px;padding:12px;text-align:center;position:relative">
+        <button onclick="dismissInstallZone()" style="position:absolute;top:8px;right:8px;background:none;border:none;color:var(--gray);font-size:16px;cursor:pointer">✕</button>
+        <div style="font-size:13px;font-weight:700;color:var(--white);margin-bottom:6px">📲 Installer l\'app sur ton écran d\'accueil</div>
+        <div style="font-size:12px;color:var(--gray);line-height:1.7">
+          <strong style="color:var(--light)">iPhone :</strong> appuie sur <strong>⬆️ Partager</strong> → "Sur l\'écran d\'accueil"<br>
+          <strong style="color:var(--light)">Android :</strong> menu <strong>⋮</strong> → "Ajouter à l\'écran d\'accueil"
+        </div>
+      </div>`;
+  }
+}
+
 let obStep = 0;
 let obData = {};
 let selectedRPE = 0;
@@ -2243,6 +2308,9 @@ async function renderJoueurHome(){
     <div style="font-family:var(--fnt-head);font-size:32px;font-weight:900;text-transform:uppercase;letter-spacing:1px;line-height:1">${j.prenom} <span style="color:var(--red)">${(j.nom||'').toUpperCase()}</span></div>
   </div>`;
 
+  // Zone installation PWA (disponible après validation du coach)
+  h+=`<div id="welcome-install-zone" style="margin-bottom:14px;display:none"></div>`;
+
   // Message individuel coach — carte impactante juste après le nom
   if(j.message_coach?.text){
     h+=`<div style="background:rgba(34,197,94,.06);border:1.5px solid rgba(34,197,94,.35);border-radius:var(--rL);padding:14px 16px;margin-bottom:14px;position:relative;overflow:hidden">
@@ -2321,6 +2389,7 @@ async function renderJoueurHome(){
   }
 
   g('joueur-page-home').innerHTML=h;
+  renderWelcomeInstallZone();
 }
 
 function renderPhaseTimeline(phaseActuelle){
