@@ -599,11 +599,15 @@ a[href*="youtube"],.video-btn{
 ═══════════════════════════════════════════════════════════ -->
 <div class="overlay" id="modal-coach-message">
   <div class="modal" style="text-align:center">
-    <div style="width:56px;height:56px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px">💬</div>
-    <div style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin-bottom:4px">Message de ton coach</div>
+    <div id="coach-msg-modal-icon" style="width:56px;height:56px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px">💬</div>
+    <div id="coach-msg-modal-title" style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin-bottom:4px">Message de ton coach</div>
     <div id="coach-msg-modal-date" style="font-size:11px;color:var(--dim);margin-bottom:14px"></div>
-    <div id="coach-msg-modal-text" style="font-size:15px;color:var(--white);line-height:1.65;font-weight:500;margin-bottom:18px;text-align:left"></div>
-    <button class="btn btn-primary" onclick="closeCoachMsgModal()">J\'ai compris 👍</button>
+    <div id="coach-msg-modal-text" style="font-size:15px;color:var(--white);line-height:1.65;font-weight:500;margin-bottom:16px;text-align:left"></div>
+    <div id="coach-msg-modal-dots" style="display:flex;justify-content:center;gap:6px;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px">
+      <button id="coach-msg-modal-prev" class="btn btn-secondary btn-sm" style="flex:1;display:none" onclick="navCoachMsgModal(-1)">← Précédent</button>
+      <button id="coach-msg-modal-next" class="btn btn-primary" style="flex:1" onclick="navCoachMsgModal(1)">Suivant →</button>
+    </div>
   </div>
 </div>
 <div class="overlay" id="modal-rpe">
@@ -2772,24 +2776,79 @@ function renderJoueurProfil(){
 function deconnexion(){currentJoueur=null;g('login-code').value='';showScreen('landing');}
 
 // ══════════════════════════════════════════════════
-// MESSAGE COACH — Modal à la connexion
+// MESSAGES COACH/ÉQUIPE — Modal à la connexion
 // ══════════════════════════════════════════════════
-function checkCoachMessageModal(){
+let _coachMsgQueue=[], _coachMsgIdx=0;
+
+async function checkCoachMessageModal(){
   const j=currentJoueur;
-  if(!j?.message_coach?.text) return;
-  if(j.message_coach.lu) return;
-  g('coach-msg-modal-date').textContent=formatDate(j.message_coach.date);
-  g('coach-msg-modal-text').textContent=j.message_coach.text;
+  if(!j) return;
+  _coachMsgQueue=[];
+
+  // Message individuel coach
+  if(j.message_coach?.text && !j.message_coach.lu){
+    _coachMsgQueue.push({
+      type:'individuel', icon:'💬', title:'Message de ton coach', color:'var(--green)',
+      text:j.message_coach.text, date:j.message_coach.date
+    });
+  }
+
+  // Annonce équipe
+  const annonce=await sbGetMeta('annonce',null);
+  if(annonce?.text && annonce.date && j.annonce_lu_date!==annonce.date){
+    _coachMsgQueue.push({
+      type:'annonce', icon:'📢', title:'Annonce équipe', color:'#60a5fa',
+      text:annonce.text, date:annonce.date
+    });
+  }
+
+  if(!_coachMsgQueue.length) return;
+  _coachMsgIdx=0;
+  renderCoachMsgModal();
   openModal('modal-coach-message');
 }
+
+function renderCoachMsgModal(){
+  const m=_coachMsgQueue[_coachMsgIdx];
+  if(!m) return;
+  g('coach-msg-modal-icon').textContent=m.icon;
+  g('coach-msg-modal-icon').style.background=m.color;
+  g('coach-msg-modal-title').textContent=m.title;
+  g('coach-msg-modal-title').style.color=m.color;
+  g('coach-msg-modal-date').textContent=formatDate(m.date);
+  g('coach-msg-modal-text').textContent=m.text;
+
+  const total=_coachMsgQueue.length;
+  const isLast=_coachMsgIdx===total-1;
+  g('coach-msg-modal-prev').style.display=_coachMsgIdx>0?'block':'none';
+  g('coach-msg-modal-next').textContent=isLast?'J\\'ai compris 👍':'Suivant →';
+  g('coach-msg-modal-next').onclick=isLast?closeCoachMsgModal:()=>navCoachMsgModal(1);
+
+  const dots=g('coach-msg-modal-dots');
+  if(total>1){
+    dots.style.display='flex';
+    dots.innerHTML=_coachMsgQueue.map((_,i)=>`<div style="width:7px;height:7px;border-radius:50%;background:${i===_coachMsgIdx?'var(--white)':'var(--brd)'}"></div>`).join('');
+  } else {
+    dots.style.display='none';
+  }
+}
+
+function navCoachMsgModal(dir){
+  _coachMsgIdx=Math.max(0,Math.min(_coachMsgQueue.length-1,_coachMsgIdx+dir));
+  renderCoachMsgModal();
+}
+
 async function closeCoachMsgModal(){
   closeModal('modal-coach-message');
   const j=currentJoueur;
-  if(j?.message_coach){
-    j.message_coach.lu=true;
-    await sbSaveJoueur(j);
-  }
+  if(!j) return;
+  let changed=false;
+  if(j.message_coach && !j.message_coach.lu){j.message_coach.lu=true;changed=true;}
+  const annonceMsg=_coachMsgQueue.find(m=>m.type==='annonce');
+  if(annonceMsg && j.annonce_lu_date!==annonceMsg.date){j.annonce_lu_date=annonceMsg.date;changed=true;}
+  if(changed) await sbSaveJoueur(j);
 }
+
 
 
 // ══════════════════════════════════════════════════
