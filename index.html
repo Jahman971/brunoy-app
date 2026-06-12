@@ -2941,6 +2941,44 @@ const BADGES = [
 
 function seancesVal(j){return (j.seances_validees||[]).filter(s=>!s.missed).length;}
 
+// Recalcule les badges après suppression d\\'une séance (coach) :
+// retire les badges dont la condition n\\'est plus remplie.
+function recalcBadges(j){
+  const earned=j.badges||[];
+  j.badges=earned.filter(id=>{
+    const b=BADGES.find(x=>x.id===id);
+    return b ? b.check(j) : true;
+  });
+}
+
+// ── Coach: gestion manuelle des badges ──
+function renderBadgesManage(j, code){
+  const earned=j.badges||[];
+  return `<div class="card" style="margin-top:14px">
+    <div class="card-title">🏅 Badges (${earned.length}/${BADGES.length})</div>
+    <div style="font-size:11px;color:var(--gray);margin-bottom:10px">Touche un badge pour l\\'attribuer ou le retirer manuellement.</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+      ${BADGES.map(b=>{
+        const got=earned.includes(b.id);
+        return `<div onclick="coachToggleBadge('${code}','${b.id}')" style="text-align:center;cursor:pointer;opacity:${got?1:.25};transition:opacity .15s" title="${b.name}: ${b.desc}">
+          <div style="font-size:24px">${b.icon}</div>
+          <div style="font-size:8px;color:var(--gray);margin-top:2px;line-height:1.2">${b.name}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+async function coachToggleBadge(code, badgeId){
+  const j=await sbGetJoueur(code);if(!j)return;
+  const earned=j.badges||[];
+  const idx=earned.indexOf(badgeId);
+  if(idx>=0) earned.splice(idx,1);
+  else earned.push(badgeId);
+  j.badges=earned;
+  const ok=await sbSaveJoueur(j);if(!ok)return;
+  coachManagePlayer(code);
+}
+
 function checkBadges(j){
   const earned=j.badges||[], newB=[];
   BADGES.forEach(b=>{if(!earned.includes(b.id)&&b.check(j)){earned.push(b.id);newB.push(b);}});
@@ -3723,6 +3761,7 @@ async function coachManagePlayer(code){
     });
   }
   h+=renderBilanCoach(j, stats);
+  h+=renderBadgesManage(j, code);
   h+=`<button class="btn btn-secondary btn-sm" style="margin-top:16px;color:var(--red);border-color:rgba(200,27,27,.3)" onclick="deletePlayer('${code}')">🗑️ Supprimer le joueur</button>`;
   g('mmp-content').innerHTML=h;
   openModal('modal-manage-player');
@@ -3778,6 +3817,7 @@ async function coachClearMsg(code){
 async function coachDelSess(code,ts){
   const j=await sbGetJoueur(code);if(!j)return;
   j.seances_validees=(j.seances_validees||[]).filter(s=>s.ts!==ts);
+  recalcBadges(j);
   const ok=await sbSaveJoueur(j);if(!ok)return;
   showToast('Séance supprimée','info');
   coachManagePlayer(code);
