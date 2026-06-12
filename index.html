@@ -597,6 +597,15 @@ a[href*="youtube"],.video-btn{
 <!-- ═══════════════════════════════════════════════════════════
      MODALS
 ═══════════════════════════════════════════════════════════ -->
+<div class="overlay" id="modal-coach-message">
+  <div class="modal" style="text-align:center">
+    <div style="width:56px;height:56px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 12px">💬</div>
+    <div style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin-bottom:4px">Message de ton coach</div>
+    <div id="coach-msg-modal-date" style="font-size:11px;color:var(--dim);margin-bottom:14px"></div>
+    <div id="coach-msg-modal-text" style="font-size:15px;color:var(--white);line-height:1.65;font-weight:500;margin-bottom:18px;text-align:left"></div>
+    <button class="btn btn-primary" onclick="closeCoachMsgModal()">J\'ai compris 👍</button>
+  </div>
+</div>
 <div class="overlay" id="modal-rpe">
   <div class="modal">
     <div class="modal-title">Comment était la séance ?<button class="modal-close" onclick="closeModal('modal-rpe')">✕</button></div>
@@ -1934,7 +1943,7 @@ async function loginJoueur(){
     return;
   }
   if(!j.vma||!j.jours_seance){obData={...j};isNewRegistration=false;startOnboarding();}
-  else{showScreen('joueur');renderJoueurHome();}
+  else{showScreen('joueur');renderJoueurHome();setTimeout(checkCoachMessageModal,400);}
 }
 g('login-code').addEventListener('keydown',e=>{if(e.key==='Enter')loginJoueur();});
 
@@ -2180,6 +2189,7 @@ async function finishOnboarding(){
   if(av){av.textContent=(currentJoueur.prenom[0]+(currentJoueur.nom?currentJoueur.nom[0]:'')).toUpperCase();av.style.background=couleurPourCode(currentJoueur.code);}
   if(g('j-header-name')) g('j-header-name').textContent=currentJoueur.prenom+' · '+currentJoueur.poste;
   renderJoueurHome();
+  setTimeout(checkCoachMessageModal,400);
 }
 
 // ══════════════════════════════════════════════════
@@ -2760,6 +2770,27 @@ function renderJoueurProfil(){
 }
 
 function deconnexion(){currentJoueur=null;g('login-code').value='';showScreen('landing');}
+
+// ══════════════════════════════════════════════════
+// MESSAGE COACH — Modal à la connexion
+// ══════════════════════════════════════════════════
+function checkCoachMessageModal(){
+  const j=currentJoueur;
+  if(!j?.message_coach?.text) return;
+  if(j.message_coach.lu) return;
+  g('coach-msg-modal-date').textContent=formatDate(j.message_coach.date);
+  g('coach-msg-modal-text').textContent=j.message_coach.text;
+  openModal('modal-coach-message');
+}
+async function closeCoachMsgModal(){
+  closeModal('modal-coach-message');
+  const j=currentJoueur;
+  if(j?.message_coach){
+    j.message_coach.lu=true;
+    await sbSaveJoueur(j);
+  }
+}
+
 
 // ══════════════════════════════════════════════════
 // SUIVI DU POIDS
@@ -3671,7 +3702,7 @@ async function coachSendMsg(code){
   const text=g('mmp-msg-'+code)?.value.trim();
   if(!text){showToast('Écris un message','error');return;}
   const j=await sbGetJoueur(code);if(!j)return;
-  j.message_coach={text,date:new Date().toISOString()};
+  j.message_coach={text,date:new Date().toISOString(),lu:false};
   const ok=await sbSaveJoueur(j);if(!ok)return;
   showToast('Message envoyé à '+j.prenom+' 💬','success');
   coachManagePlayer(code);
