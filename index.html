@@ -2221,12 +2221,12 @@ async function renderJoueurHome(){
 
   // Message individuel coach — carte impactante juste après le nom
   if(j.message_coach?.text){
-    h+=`<div style="background:linear-gradient(135deg,#0f0f0f,#1a0a0a);border:1.5px solid var(--red);border-radius:var(--rL);padding:14px 16px;margin-bottom:14px;position:relative;overflow:hidden">
-      <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(200,27,27,.07)"></div>
+    h+=`<div style="background:rgba(34,197,94,.06);border:1.5px solid rgba(34,197,94,.35);border-radius:var(--rL);padding:14px 16px;margin-bottom:14px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;background:rgba(34,197,94,.07)"></div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <div style="width:34px;height:34px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">💬</div>
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">💬</div>
         <div>
-          <div style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--red)">Message de ton Coach</div>
+          <div style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--green)">Message de ton coach</div>
           <div style="font-size:10px;color:var(--dim)">${formatDate(j.message_coach.date)}</div>
         </div>
       </div>
