@@ -2507,7 +2507,7 @@ function renderProgCalendar(){
   let h='';
   for(let w=0;w<5;w++){
     const sessions=genPhase2Sessions(w,j);
-    h+=`<div style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin:18px 0 10px">Semaine ${w+1} · ${phaseLabels[w]}</div>`;
+    h+=`<div style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--red);margin:18px 0 10px">Semaine ${w+1} · ${phaseLabels[w]}</div>`;
     sessions.forEach((sess,idx)=>{
       const date=getSessionDate(w,idx);
       const dayNum=date.getDate();
@@ -2534,7 +2534,7 @@ function renderProgCalendar(){
           </div>
           <div style="font-family:var(--fnt-head);font-size:16px;font-weight:700;color:var(--white);margin-bottom:6px">${sess.titre}</div>
           ${(sess.blocs||[]).filter(b=>!b.isPPP).slice(0,2).map(b=>`<div style="font-size:12px;color:var(--gray);margin-bottom:1px">• ${(b.titre||'').replace(/<[^>]*>/g,'')}</div>`).join('')}
-          ${hasPPP?`<div style="font-size:11px;color:var(--green);font-weight:700;margin-top:4px">+ Prévention blessures intégrée</div>`:''}
+          ${hasPPP?`<div style="font-size:11px;color:var(--gold);font-weight:700;margin-top:4px">+ Prévention blessures intégrée</div>`:''}
         </div>
       </div>`;
     });
