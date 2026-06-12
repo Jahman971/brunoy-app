@@ -1847,7 +1847,17 @@ function genCode(prenom='',nom=''){
   const n=Math.floor(10+Math.random()*90);
   return initials+n||('BH'+Math.floor(100+Math.random()*900));
 }
-function couleurPourCode(code){const h=(code||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0);return COULEURS_AV[h%COULEURS_AV.length];}
+const POSTE_COLORS={
+  'Gardien':'#D97706','Ailier G':'#0891B2','Ailier D':'#16A34A',
+  'Arrière G':'#2563EB','Arrière D':'#7C3AED','Demi-centre':'#DB2777','Pivot':'#C81B1B'
+};
+function couleurPourCode(j){
+  const poste=(j&&typeof j==='object')?j.poste:null;
+  if(poste&&POSTE_COLORS[poste]) return POSTE_COLORS[poste];
+  const code=(j&&typeof j==='object')?j.code:j;
+  const h=(code||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  return COULEURS_AV[h%COULEURS_AV.length];
+}
 function renderAllures(vma){
   const a=getAllures(vma);
   return `<div class="allures-grid">
@@ -2190,7 +2200,7 @@ async function finishOnboarding(){
   showToast('Profil mis à jour ! 💪','success');
   showScreen('joueur');
   const av=g('j-header-av');
-  if(av){av.textContent=(currentJoueur.prenom[0]+(currentJoueur.nom?currentJoueur.nom[0]:'')).toUpperCase();av.style.background=couleurPourCode(currentJoueur.code);}
+  if(av){av.textContent=(currentJoueur.prenom[0]+(currentJoueur.nom?currentJoueur.nom[0]:'')).toUpperCase();av.style.background=couleurPourCode(currentJoueur);}
   if(g('j-header-name')) g('j-header-name').textContent=currentJoueur.prenom+' · '+currentJoueur.poste;
   renderJoueurHome();
   setTimeout(checkCoachMessageModal,400);
@@ -2218,7 +2228,7 @@ function showJoueurPage(page){
 async function renderJoueurHome(){
   if(!currentJoueur)return;
   const j=currentJoueur;
-  const av=g('j-header-av'); av.textContent=(j.prenom[0]+(j.nom?j.nom[0]:'')).toUpperCase(); av.style.background=couleurPourCode(j.code);
+  const av=g('j-header-av'); av.textContent=(j.prenom[0]+(j.nom?j.nom[0]:'')).toUpperCase(); av.style.background=couleurPourCode(j);
   g('j-header-name').textContent=j.prenom+' · '+j.poste;
 
   const today=new Date(), todayStr=today.toISOString().split('T')[0];
@@ -2750,7 +2760,7 @@ function renderJoueurProfil(){
   g('joueur-page-profil').innerHTML=`
     <div class="sec-title">Mon <span class="accent">Profil</span></div>
     <div class="card" style="text-align:center;padding:24px">
-      <div style="width:72px;height:72px;border-radius:50%;background:${couleurPourCode(j.code)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:28px;font-weight:900;margin:0 auto 12px">${(j.prenom[0]+(j.nom?j.nom[0]:'')).toUpperCase()}</div>
+      <div style="width:72px;height:72px;border-radius:50%;background:${couleurPourCode(j)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:28px;font-weight:900;margin:0 auto 12px">${(j.prenom[0]+(j.nom?j.nom[0]:'')).toUpperCase()}</div>
       <div style="font-family:var(--fnt-head);font-size:26px;font-weight:900;letter-spacing:1px">${j.prenom} ${(j.nom||'').toUpperCase()}</div>
       <div style="font-size:13px;color:var(--gray);margin:4px 0 10px">${j.poste||'—'} · ${j.age||'—'} ans</div>
       <div class="code-badge">${j.code}</div>
@@ -3158,7 +3168,7 @@ async function renderCoachJoueurs(){
     const lastVal=(j.seances_validees||[]).filter(s=>!s.missed).sort((a,b)=>b.ts-a.ts)[0];
     const alert=phase==='p2'&&(!lastVal||(now-lastVal.ts)>10*24*3600*1000);
     h+=`<div class="player-row" onclick="coachManagePlayer('${j.code}')">
-      <div class="player-av" style="background:${couleurPourCode(j.code)}">${(j.prenom?j.prenom[0]:'?')+(j.nom?j.nom[0]:'')}</div>
+      <div class="player-av" style="background:${couleurPourCode(j)}">${(j.prenom?j.prenom[0]:'?')+(j.nom?j.nom[0]:'')}</div>
       <div style="flex:1"><div class="player-name">${statusIcon}${j.prenom||'—'} ${(j.nom||'').toUpperCase()}${alert?' <span style="color:var(--yellow);font-size:12px">⚠️</span>':''}</div>
       <div class="player-meta">${j.poste||'—'} · VMA ${j.vma||'—'} · ${j.code}</div></div>
       <div class="player-badge ${badgeClass}">${badgeTxt}</div>
@@ -3220,18 +3230,18 @@ async function renderCoachStats(){
   </div>
   <div class="card-title" style="margin-bottom:8px">🏆 Top 3</div>`;
   top3.forEach((j,i)=>{h+=`<div class="lb-row" onclick="coachManagePlayer('${j.code}')" style="cursor:pointer"><div class="lb-rank">${med[i]}</div>
-    <div style="width:28px;height:28px;border-radius:50%;background:${couleurPourCode(j.code)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:11px;font-weight:900">${j.prenom?j.prenom[0]:'?'}</div>
+    <div style="width:28px;height:28px;border-radius:50%;background:${couleurPourCode(j)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:11px;font-weight:900">${j.prenom?j.prenom[0]:'?'}</div>
     <div class="lb-name">${j.prenom}</div><div class="lb-val">${j.stats.assiduite}%</div></div>`;});
   if(traine.length){
     h+=`<div class="card-title" style="margin:14px 0 8px">😴 À la traîne (&lt;50%)</div>`;
     traine.forEach(j=>{h+=`<div class="traine-row" onclick="coachManagePlayer('${j.code}')">
-      <div style="width:28px;height:28px;border-radius:50%;background:${couleurPourCode(j.code)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:11px;font-weight:900">${j.prenom?j.prenom[0]:'?'}</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:${couleurPourCode(j)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:11px;font-weight:900">${j.prenom?j.prenom[0]:'?'}</div>
       <div style="flex:1;font-size:13px;font-weight:600">${j.prenom}</div>
       <div style="color:var(--red);font-family:var(--fnt-head);font-size:16px;font-weight:900">${j.stats.assiduite}%</div>→</div>`;});
   }
   h+=`<div class="card-title" style="margin:14px 0 8px">Classement complet</div>`;
   ranked.forEach((j,i)=>{h+=`<div class="lb-row" onclick="coachManagePlayer('${j.code}')" style="cursor:pointer"><div class="lb-rank">${i<3?med[i]:i+1}</div>
-    <div style="width:28px;height:28px;border-radius:50%;background:${couleurPourCode(j.code)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:11px;font-weight:900">${j.prenom?j.prenom[0]:'?'}</div>
+    <div style="width:28px;height:28px;border-radius:50%;background:${couleurPourCode(j)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:11px;font-weight:900">${j.prenom?j.prenom[0]:'?'}</div>
     <div class="lb-name">${j.prenom}</div><div class="lb-val">${j.stats.assiduite}%</div></div>`;});
   g('coach-content').innerHTML=h;
 }
@@ -3705,7 +3715,7 @@ async function renderCoachSemaine(){
       const lv=(j.seances_validees||[]).filter(s=>!s.missed).sort((a,b)=>b.ts-a.ts)[0];
       const days=lv?Math.floor((now-lv.ts)/86400000):'—';
       h+=`<div class="alert-row" onclick="coachManagePlayer('${j.code}')">
-        <div style="width:32px;height:32px;border-radius:50%;background:${couleurPourCode(j.code)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:13px;font-weight:900;flex-shrink:0">${j.prenom?j.prenom[0]:'?'}</div>
+        <div style="width:32px;height:32px;border-radius:50%;background:${couleurPourCode(j)};display:flex;align-items:center;justify-content:center;font-family:var(--fnt-head);font-size:13px;font-weight:900;flex-shrink:0">${j.prenom?j.prenom[0]:'?'}</div>
         <div style="flex:1"><div style="font-weight:600;font-size:13px">${j.prenom} ${(j.nom||'').toUpperCase()}</div>
         <div style="font-size:11px;color:var(--yellow)">${lv?`Dernière séance il y a ${days} jours`:'Aucune séance validée'}</div></div>→
       </div>`;
