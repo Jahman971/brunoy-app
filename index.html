@@ -2968,12 +2968,32 @@ function renderBadgesManage(j, code){
     </div>
   </div>`;
 }
+// Familles de badges progressifs (séances validées) — cohérence logique
+const BADGE_SEANCES_TIERS=['first','s3','s5','s10','s20'];
+
 async function coachToggleBadge(code, badgeId){
   const j=await sbGetJoueur(code);if(!j)return;
   const earned=j.badges||[];
   const idx=earned.indexOf(badgeId);
-  if(idx>=0) earned.splice(idx,1);
-  else earned.push(badgeId);
+  const tierIdx=BADGE_SEANCES_TIERS.indexOf(badgeId);
+  if(idx>=0){
+    earned.splice(idx,1);
+    // Retire aussi les paliers supérieurs (qui impliquent celui-ci)
+    if(tierIdx>=0){
+      for(let i=tierIdx+1;i<BADGE_SEANCES_TIERS.length;i++){
+        const hi=earned.indexOf(BADGE_SEANCES_TIERS[i]);
+        if(hi>=0) earned.splice(hi,1);
+      }
+    }
+  } else {
+    earned.push(badgeId);
+    // Ajoute aussi les paliers inférieurs (impliqués par celui-ci)
+    if(tierIdx>=0){
+      for(let i=0;i<tierIdx;i++){
+        if(!earned.includes(BADGE_SEANCES_TIERS[i])) earned.push(BADGE_SEANCES_TIERS[i]);
+      }
+    }
+  }
   j.badges=earned;
   const ok=await sbSaveJoueur(j);if(!ok)return;
   coachManagePlayer(code);
