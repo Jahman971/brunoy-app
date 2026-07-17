@@ -3334,6 +3334,40 @@ async function renderCoachBienEtre(){
     return ra-rb||((a.ci?.score||99)-(b.ci?.score||99));
   });
   const done=rows.filter(r=>r.ci).length;
+  // ── Moyenne du groupe ──
+  const prevWk=isoWeekKey(new Date(Date.now()-7*86400000));
+  const curScores=rows.filter(r=>r.ci).map(r=>r.ci.score);
+  const prevScores=joueurs.map(j=>getCheckin(j,prevWk)).filter(Boolean).map(c=>c.score);
+  if(curScores.length){
+    const avg=curScores.reduce((s,v)=>s+v,0)/curScores.length;
+    const gEmoji=avg>=29?'🟢':avg>=23?'🟠':'🔴';
+    const gCol=avg>=29?'var(--green)':avg>=23?'var(--yellow)':'var(--red)';
+    let deltaHtml='', groupAlert='';
+    if(prevScores.length){
+      const prevAvg=prevScores.reduce((s,v)=>s+v,0)/prevScores.length;
+      const delta=Math.round(((avg-prevAvg)/prevAvg)*100);
+      deltaHtml=`<span style="font-size:12px;color:${delta>=0?'var(--green)':'var(--red)'};font-weight:700">${delta>=0?'↗ +':'↘ '}${Math.abs(delta)}% vs S-1 (${prevAvg.toFixed(1)})</span>`;
+      if(delta<=-20) groupAlert=`<div style="font-size:12px;color:var(--red);margin-top:6px">🚨 <strong>Chute du groupe ≥ 20%</strong> — charge probablement trop élevée : alléger la prochaine séance.</div>`;
+      else if(delta<=-10) groupAlert=`<div style="font-size:12px;color:var(--yellow);margin-top:6px">⚠️ Groupe en baisse — à surveiller sur la séance à venir.</div>`;
+    }
+    const nG=rows.filter(r=>r.ci&&!r.alerts.length&&r.ci.score>=29).length;
+    const nR=rows.filter(r=>r.ci&&(r.alerts.length||r.ci.score<=22)).length;
+    const nO=done-nG-nR;
+    h+=`<div class="card" style="border-color:${gCol};margin-bottom:12px;padding:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:24px">📊</span>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:13px">Moyenne du groupe ${gEmoji}</div>
+          <div style="font-size:11px;color:var(--gray)">🟢 ${nG} · 🟠 ${nO} · 🔴 ${nR} · sur ${done} check-in${done>1?'s':''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--fnt-head);font-size:22px;font-weight:900;color:${gCol};line-height:1">${avg.toFixed(1)}<span style="font-size:11px;color:var(--gray)">/35</span></div>
+          ${deltaHtml}
+        </div>
+      </div>
+      ${groupAlert}
+    </div>`;
+  }
   h+=`<div style="font-size:12px;color:var(--gray);margin-bottom:10px">✅ ${done}/${rows.length} check-ins remplis cette semaine</div>`;
   rows.forEach(({j,ci,alerts,tr})=>{
     if(!ci){
