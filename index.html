@@ -612,7 +612,7 @@ a[href*="youtube"],.video-btn{
     </div>
   </div>
 </div>
-<div class="overlay" id="modal-rpe">
+<div class="overlay" id="modal-rpe" style="z-index:150">
   <div class="modal">
     <div class="modal-title">Comment était la séance ?<button class="modal-close" onclick="closeModal('modal-rpe')">✕</button></div>
     <p style="font-size:13px;color:var(--gray);margin-bottom:4px">RPE — Effort perçu (1 = très facile / 10 = épuisant)</p>
@@ -2437,15 +2437,26 @@ function renderPhase2Today(j, today, todayStr){
   if(sdj){
     const {session, idx, weekIdx} = sdj;
     const wl=getPhase2WeemLabel(weekIdx);
-    const done=(j.seances_validees||[]).find(s=>s.date===todayStr&&s.weekIdx===weekIdx&&s.sessionIdx===idx);
+    const entry=(j.seances_validees||[]).find(s=>s.date===todayStr&&s.weekIdx===weekIdx&&s.sessionIdx===idx);
+    const done=entry&&!entry.missed;
+    const missed=entry&&entry.missed;
 
     if(done){
       h+=`<div class="card card-green">
         <div style="display:flex;align-items:center;gap:12px">
           <span style="font-size:32px">✅</span>
           <div><div style="font-weight:700;font-size:15px">Séance validée aujourd\'hui !</div>
-          <div style="font-size:12px;color:var(--gray)">${session.titre} · RPE ${done.rpe||'—'}/10</div></div>
+          <div style="font-size:12px;color:var(--gray)">${session.titre} · RPE ${entry.rpe||'—'}/10</div></div>
         </div>
+      </div>`;
+    } else if(missed){
+      h+=`<div class="card" style="border-color:rgba(200,27,27,.4)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+          <span style="font-size:32px">❌</span>
+          <div><div style="font-weight:700;font-size:15px">Séance marquée manquée</div>
+          <div style="font-size:12px;color:var(--gray)">${session.titre}</div></div>
+        </div>
+        <button class="btn btn-secondary" onclick="ouvrirRPE('${todayStr}',${weekIdx},${idx})">✅ Finalement je l\'ai faite</button>
       </div>`;
     } else {
       const blocs=session.blocs.map((b,i)=>renderBloc(b,i)).join('');
@@ -3140,6 +3151,7 @@ async function validerSeance(){
   if(!selectedRPE){showToast('Choisis un RPE (1-10)','error');return;}
   const {date,weekIdx,sessionIdx}=pendingValidation;
   if(!currentJoueur.seances_validees) currentJoueur.seances_validees=[];
+  currentJoueur.seances_validees=currentJoueur.seances_validees.filter(s=>!(s.missed&&s.weekIdx===weekIdx&&s.sessionIdx===sessionIdx));
   currentJoueur.seances_validees.push({date,weekIdx,sessionIdx,rpe:selectedRPE,missed:false,ts:Date.now()});
   closeModal('modal-rpe');
   closeModal('modal-seance-detail');
