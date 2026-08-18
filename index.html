@@ -1982,6 +1982,230 @@ function getStats(j){
   return {total:val.length,assiduite,rpe_moy,serie};
 }
 
+
+
+// ══════════════════════════════════════════════════
+// CALCUL RETARD & PLAN DE RATTRAPAGE
+// ══════════════════════════════════════════════════
+function getRetardJoueur(j) {
+  const semaineActuelle = getPhase2Week(); // semaine en cours (0-4)
+  const validees = (j.seances_validees||[]).filter(s=>!s.missed);
+  const rattrapables = [];
+
+  // Séances obligatoires des semaines passées non faites
+  for(let w = 0; w < semaineActuelle; w++) {
+    const sessions = genPhase2Sessions(w, j);
+    sessions.forEach((sess, si) => {
+      if(sess.obligatoire===false) return; // facultative → skip
+      const faite = validees.find(v=>v.weekIdx===w && v.sessionIdx===si);
+      if(!faite) rattrapables.push({weekIdx:w, sessIdx:si, sess});
+    });
+  }
+
+  // Séances semaine courante non faites (retard partiel)
+  const sessActuelles = genPhase2Sessions(semaineActuelle, j);
+  const joursActuels = ['lundi','mercredi','vendredi'];
+  const now = new Date();
+  const PREPA_START = new Date('2026-07-13T00:00:00');
+  sessActuelles.forEach((sess, si) => {
+    if(sess.obligatoire===false) return;
+    const jourOff = [0,2,4][si];
+    const dateSess = new Date(PREPA_START.getTime() + (semaineActuelle*7+jourOff)*86400000);
+    if(dateSess < now) {
+      const faite = validees.find(v=>v.weekIdx===semaineActuelle && v.sessionIdx===si);
+      if(!faite) rattrapables.push({weekIdx:semaineActuelle, sessIdx:si, sess, semaineCourante:true});
+    }
+  });
+
+  const semainesRestantes = Math.max(1, 5 - semaineActuelle);
+  const retardSemaines = Math.round(rattrapables.length / 2 * 10) / 10;
+
+  // Plan de lissage : max 1 séance de rattrapage par semaine restante
+  // Priorité : cardio > force (pour arriver prêt en P3)
+  const tries = [...rattrapables].sort((a,b)=>{
+    const order = {Cardio:0, Force:1, Récup:2};
+    return (order[a.sess.type]||2)-(order[b.sess.type]||2);
+  });
+
+  const plan = []; // [{semaine, sessions: []}]
+  let semaine = semaineActuelle;
+  tries.forEach((r, idx) => {
+    // 1 rattrapage par semaine max, à intégrer sur les semaines restantes
+    const offsetSem = Math.floor(idx / 1); // 1 par semaine
+    const semaineCible = Math.min(semaine + offsetSem, 4);
+    const existing = plan.find(p=>p.semaine===semaineCible);
+    if(existing) existing.sessions.push(r);
+    else plan.push({semaine:semaineCible, sessions:[r]});
+  });
+
+  return {
+    retard: rattrapables.length,
+    retardSemaines,
+    semainesRestantes,
+    rattrapables,
+    planLisse: plan,
+    alerte: rattrapables.length >= 4 ? 'critique' : rattrapables.length >= 2 ? 'modere' : rattrapables.length > 0 ? 'leger' : 'ok'
+  };
+}
+
+function renderRattrapageCoach(j) {
+  const r = getRetardJoueur(j);
+  if(r.retard===0) return '<div style="background:rgba(34,197,94,.08);border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:var(--green);font-weight:700">✅ Joueur à jour — aucun retard sur le programme</div>';
+
+  const alertCols = {critique:'rgba(200,27,27,.12)', modere:'rgba(245,158,11,.10)', leger:'rgba(59,130,246,.08)'};
+  const alertBords = {critique:'rgba(200,27,27,.4)', modere:'rgba(245,158,11,.35)', leger:'rgba(59,130,246,.3)'};
+  const alertTexts = {critique:'var(--red)', modere:'var(--yellow)', leger:'#60a5fa'};
+  const alertIcons = {critique:'🚨', modere:'⏰', leger:'📅'};
+  const alertTitres = {
+    critique:`${r.retard} séances en retard — rattrapage difficile`,
+    modere:`${r.retard} séances en retard — récupérable`,
+    leger:`${r.retard} séance${r.retard>1?'s':''} en retard — gérable`
+  };
+
+  const typeEmoji = {Cardio:'🏃', Force:'💪', Récup:'🧘'};
+  const semLabels = ['S1','S2','S3','S4','S5'];
+
+  let planHTML = r.planLisse.map(p=>`
+    <div style="margin-bottom:6px">
+      <span style="font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase">${semLabels[p.semaine]} (rattrapage)</span>
+      ${p.sessions.map(s=>`<div style="font-size:12px;color:var(--light);margin-left:8px">→ ${typeEmoji[s.sess.type]||'📌'} ${s.sess.titre} <span style="color:var(--gray)">(S${s.weekIdx+1})</span></div>`).join('')}
+    </div>`).join('');
+
+  // Calcul prêt pour P3 (17 août)
+  const p3Date = new Date('2026-08-17');
+  const now = new Date();
+  const joursAvantP3 = Math.ceil((p3Date-now)/(86400000));
+  let readinessP3 = '';
+  if(r.retard===0) readinessP3='<span style="color:var(--green)">✅ Prêt pour P3</span>';
+  else if(r.retard<=2 && r.semainesRestantes>=2) readinessP3='<span style="color:var(--yellow)">⚠️ Récupérable avant P3 avec lissage</span>';
+  else if(r.retard<=4 && r.semainesRestantes>=1) readinessP3='<span style="color:var(--yellow)">⏳ Rattrapage partiel — démarrage P3 en dessous du niveau</span>';
+  else readinessP3='<span style="color:var(--red)">❌ Impossible de rattraper — adapter P3 pour ce joueur</span>';
+
+  return `<div style="background:${alertCols[r.alerte]};border:1.5px solid ${alertBords[r.alerte]};border-radius:var(--rL);padding:14px;margin-top:12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:18px">${alertIcons[r.alerte]}</span>
+      <div style="font-family:var(--fnt-head);font-size:12px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:${alertTexts[r.alerte]}">${alertTitres[r.alerte]}</div>
+    </div>
+    <div style="font-size:12px;color:var(--gray);margin-bottom:10px">${r.semainesRestantes} semaine${r.semainesRestantes>1?'s':''} restantes avant P3 · ${joursAvantP3>0?joursAvantP3+' jours':'P3 démarrée'}</div>
+    <div style="font-size:12px;font-weight:700;color:var(--light);margin-bottom:6px">Plan de lissage proposé :</div>
+    ${planHTML}
+    <div style="border-top:1px solid var(--brd);margin-top:10px;padding-top:8px;font-size:12px">${readinessP3}</div>
+  </div>`;
+}
+
+// Affichage joueur côté programme — section rattrapage
+function renderRattrapageJoueur(j) {
+  const r = getRetardJoueur(j);
+  if(r.retard===0 || !r.planLisse.length) return '';
+
+  const semaineActuelle = getPhase2Week();
+  const semaineActuellePlan = r.planLisse.find(p=>p.semaine===semaineActuelle);
+  if(!semaineActuellePlan) return '';
+
+  const typeEmoji = {Cardio:'🏃', Force:'💪', Récup:'🧘'};
+  const typeColor = {'Cardio':'var(--red)', 'Force':'#3B82F6', 'Récup':'var(--green)'};
+
+  return `<div style="background:rgba(245,158,11,.08);border:1.5px dashed rgba(245,158,11,.4);border-radius:var(--rL);padding:14px;margin-bottom:14px">
+    <div style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:var(--yellow);margin-bottom:8px">⏰ Rattrapage à faire cette semaine</div>
+    <div style="font-size:12px;color:var(--gray);margin-bottom:10px">Tu as des séances en retard. Pour être prêt pour la reprise collective, intègre ces séances supplémentaires :</div>
+    ${semaineActuellePlan.sessions.map(s=>`
+      <div onclick="ouvrirSeanceDetail(${s.weekIdx},${s.sessIdx})" style="display:flex;align-items:center;gap:12px;background:var(--s2);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;border-left:3px solid ${typeColor[s.sess.type]||'var(--red)'}">
+        <span style="font-size:18px">${typeEmoji[s.sess.type]||'📌'}</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--white)">${s.sess.titre}</div>
+          <div style="font-size:11px;color:var(--gray)">Semaine ${s.weekIdx+1} · à rattraper</div>
+        </div>
+        <span style="margin-left:auto;color:var(--gray);font-size:14px">›</span>
+      </div>`).join('')}
+    <div style="font-size:11px;color:var(--dim);margin-top:4px">💡 Ces séances s\'ajoutent à ton programme normal cette semaine</div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════
+// ADAPTATION SÉANCES SELON RPE
+// ══════════════════════════════════════════════════
+function getAdaptationRPE(j) {
+  const seances = (j.seances_validees||[]).filter(s=>!s.missed);
+  const rpes = seances.filter(s=>s.rpe).map(s=>s.rpe);
+  const nbVal = seances.length;
+  const rpe = rpes.length ? Math.round(rpes.reduce((a,b)=>a+b,0)/rpes.length*10)/10 : null;
+  const dernierRpes = rpes.slice(-3);
+  const rpeDernier = dernierRpes.length ? Math.round(dernierRpes.reduce((a,b)=>a+b,0)/dernierRpes.length*10)/10 : null;
+
+  // Pas assez de données
+  if(nbVal===0) return {
+    niveau:'info', icon:'🔍',
+    titre:'Pas encore de données',
+    texte:'Le joueur n\'a pas encore validé de séance. Encourager la prise en main de l\'app.',
+    actions:[]
+  };
+  if(rpes.length===0) return {
+    niveau:'info', icon:'📊',
+    titre:'Séances sans RPE',
+    texte:`${nbVal} séance(s) validée(s) mais aucun ressenti renseigné. Rappeler au joueur de noter son RPE.`,
+    actions:['Envoyer un message de rappel']
+  };
+
+  // Analyse RPE
+  if(rpe<=4) return {
+    niveau:'up', icon:'⬆️',
+    titre:'Charge insuffisante — Intensifier',
+    texte:`RPE moyen de ${rpe}/10 (${rpes.length} mesures). Le joueur sous-estime ou sous-performe. La charge est trop légère pour lui.`,
+    actions:[
+      'Faire passer d\'un groupe inférieur au groupe supérieur (C→B ou B→A)',
+      `Augmenter l\'allure cible de +5% VMA (actuellement ${j.vma||'?'} km/h → ${j.vma?Math.round(j.vma*1.05*10)/10:'?'} km/h)`,
+      'Ajouter une répétition à la séance fractionnée'
+    ]
+  };
+
+  if(rpe<=7) return {
+    niveau:'ok', icon:'✅',
+    titre:'Charge adaptée — Maintenir',
+    texte:`RPE moyen de ${rpe}/10 (${rpes.length} mesures). Zone cible atteinte. Le programme est bien calibré pour ce joueur.`,
+    actions:['Maintenir le programme en cours', rpeDernier&&rpeDernier<rpe?'Tendance à la baisse récente : progression normale, ne pas augmenter':'']
+  };
+
+  if(rpe<=9) return {
+    niveau:'warn', icon:'⚠️',
+    titre:'Charge élevée — Alléger légèrement',
+    texte:`RPE moyen de ${rpe}/10 (${rpes.length} mesures). Le joueur est à la limite. Risque d\'accumulation de fatigue.`,
+    actions:[
+      'Réduire le volume de 10% (ex: 8 répétitions → 7)',
+      'Vérifier le sommeil et la récupération (demander en message)',
+      nbVal>=3?'Proposer une séance de récup supplémentaire cette semaine':''
+    ]
+  };
+
+  return {
+    niveau:'alert', icon:'🚨',
+    titre:'Surcharge — Intervention urgente',
+    texte:`RPE moyen de ${rpe}/10 (${rpes.length} mesures). Risque de blessure ou surentraînement. Réduction immédiate nécessaire.`,
+    actions:[
+      'Déclencher une semaine de décharge dès maintenant',
+      'Remplacer la prochaine séance cardio par récupération active',
+      'Contacter le joueur pour évaluer son état physique',
+      j.vma?`Vérifier si la VMA (${j.vma} km/h) est bien à jour — peut être surestimée`:''
+    ]
+  };
+}
+
+function renderAdaptationCoach(j) {
+  const a = getAdaptationRPE(j);
+  const cols = {ok:'rgba(34,197,94,.1)', warn:'rgba(245,158,11,.1)', alert:'rgba(200,27,27,.12)', info:'rgba(59,130,246,.1)', up:'rgba(168,85,247,.1)'};
+  const bordCols = {ok:'rgba(34,197,94,.4)', warn:'rgba(245,158,11,.4)', alert:'rgba(200,27,27,.4)', info:'rgba(59,130,246,.3)', up:'rgba(168,85,247,.4)'};
+  const textCols = {ok:'var(--green)', warn:'var(--yellow)', alert:'var(--red)', info:'#60a5fa', up:'#c084fc'};
+  const actions = a.actions.filter(x=>x);
+  return `<div style="background:${cols[a.niveau]};border:1.5px solid ${bordCols[a.niveau]};border-radius:var(--rL);padding:14px;margin-top:12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:20px">${a.icon}</span>
+      <div style="font-family:var(--fnt-head);font-size:13px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:${textCols[a.niveau]}">${a.titre}</div>
+    </div>
+    <div style="font-size:12px;color:var(--light);line-height:1.6;margin-bottom:${actions.length?'10px':'0'}">${a.texte}</div>
+    ${actions.length?`<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${textCols[a.niveau]};margin-bottom:6px">Actions recommandées</div>
+    <ul style="margin:0;padding-left:16px;font-size:12px;color:var(--light);line-height:1.8">${actions.map(ac=>`<li>${ac}</li>`).join('')}</ul>`:''}
+  </div>`;
+}
+
 function renderBilanCoach(j, stats){
   const vmaInit=j.vmaInitiale||j.vma;
   const vmaNow=j.vma;
@@ -1997,6 +2221,8 @@ function renderBilanCoach(j, stats){
   else if(stats.assiduite>=50) synth='👍 Bonne préparation, à confirmer.';
   else if(stats.total>0) synth='⚠️ Assiduité partielle — à suivre de près.';
   else synth='❌ Aucune séance validée pour l\'instant.';
+  const adaptHTML = renderAdaptationCoach(j);
+  const rattrapHTML = renderRattrapageCoach(j);
   return `<div class="card card-red" style="margin-top:14px">
     <div class="card-title" style="color:var(--red)">📈 Bilan de prépa <span style="font-size:10px;color:var(--gray);font-weight:400;text-transform:none;letter-spacing:0">(visible coach uniquement)</span></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
@@ -2017,6 +2243,8 @@ function renderBilanCoach(j, stats){
       <div class="row-between"><span class="text-gray">RPE moyen</span><strong>${stats.rpe_moy||'—'}${stats.rpe_moy?'/10':''}</strong></div>
     </div>
     <div style="background:rgba(200,27,27,.08);border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:var(--light);line-height:1.5">${synth}</div>
+    ${adaptHTML}
+    ${rattrapHTML}
   </div>`;
 }
 
@@ -2609,6 +2837,8 @@ function renderProgP2(){
     <button onclick="setProgView('calendrier')" class="week-pill ${vm==='calendrier'?'active':''}" style="flex:1;text-align:center">📅 Calendrier</button>
     <button onclick="setProgView('semaine')" class="week-pill ${vm==='semaine'?'active':''}" style="flex:1;text-align:center">📊 Par semaine</button>
   </div>`;
+  const rattrapJoueurHTML = renderRattrapageJoueur(j);
+  h+=`<div id="prog-rattrapage-zone">${rattrapJoueurHTML}</div>`;
   h+=`<div id="prog-view-content"></div>`;
   setTimeout(()=>{
     if(vm==='calendrier') renderProgCalendar();
