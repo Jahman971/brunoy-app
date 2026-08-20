@@ -592,6 +592,7 @@ a[href*="youtube"],.video-btn{
     <button class="ctab" id="ctab-biblio" onclick="coachTab('biblio')">Biblio</button>
     <button class="ctab" id="ctab-seances-custom" onclick="coachTab('seances-custom')">Séances</button>
     <button class="ctab" id="ctab-bienetre" onclick="coachTab('bienetre')">Bien-être</button>
+    <button class="ctab" id="ctab-suivi" onclick="coachTab('suivi')">Suivi</button>
     <button class="ctab" id="ctab-annonce" onclick="coachTab('annonce')">Message</button>
   </div>
   <div class="coach-content" id="coach-content"></div>
@@ -3665,7 +3666,7 @@ async function loginCoach(){
 function logoutCoach(){coachPwd=null;currentCoach=null;selectedCoachId='lohan';showScreen('landing');}
 
 function coachTab(tab){
-  ['joueurs','semaine','stats','planning','biblio','seances-custom','bienetre','annonce'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
+  ['joueurs','semaine','stats','planning','biblio','seances-custom','bienetre','annonce','suivi'].forEach(t=>{g('ctab-'+t)?.classList.toggle('active',t===tab);});
   if(tab==='joueurs') renderCoachJoueurs();
   else if(tab==='semaine') renderCoachSemaine();
   else if(tab==='stats') renderCoachStats();
@@ -3673,6 +3674,7 @@ function coachTab(tab){
   else if(tab==='biblio') renderCoachBiblio();
   else if(tab==='seances-custom') renderCoachSeancesCustom();
   else if(tab==='bienetre') renderCoachBienEtre();
+  else if(tab==='suivi') renderCoachSuivi();
   else renderCoachAnnonce();
 }
 
@@ -4217,6 +4219,161 @@ async function rejectPlayer(code){
   coachTab('joueurs');
 }
 
+
+// ══════════════════════════════════════════════════
+// COACH — VUE SUIVI GLOBAL JOUEURS
+// ══════════════════════════════════════════════════
+async function renderCoachSuivi(){
+  const joueurs=(await sbGetJoueurs()).filter(j=>j.statut_compte==='valide');
+  const now=new Date();
+  const PREPA_START=new Date('2026-07-13T00:00:00');
+
+  function getGroupe(vma){
+    if(!vma)return'?';
+    const v=parseFloat(vma);
+    if(v>17)return'A+';
+    if(v>15)return'A';
+    if(v>=15)return'B';
+    return'C';
+  }
+  function calcSuivi(j){
+    const sv=(j.seances_validees||[]);
+    const valides=sv.filter(s=>!s.missed);
+    const rpes=valides.filter(s=>s.rpe>0).map(s=>s.rpe);
+    const rpeMoy=rpes.length?Math.round(rpes.reduce((a,b)=>a+b,0)/rpes.length*10)/10:null;
+    const dernDates=valides.map(s=>s.weekIdx*7+[0,2,4][s.sessionIdx||0]||0);
+    const dernOffset=dernDates.length?Math.max(...dernDates):null;
+    const joursInactif=dernOffset!==null?Math.floor((now-PREPA_START)/86400000)-dernOffset:999;
+    const totalAttendu=10;
+    const assiduite=Math.min(100,Math.round(valides.length/totalAttendu*100));
+    let statut,couleur;
+    if(valides.length===0){statut='⬛ Absent';couleur='#777';}
+    else if(valides.length>=12){statut='🟢 En forme';couleur='var(--green)';}
+    else if(valides.length>=7){statut='🟡 OK';couleur='var(--yellow)';}
+    else if(joursInactif>14){statut='🔴 Inactif';couleur='var(--red)';}
+    else{statut='🟠 Retard';couleur:'#f97316';}
+    let rpeAlert='';
+    if(rpeMoy!==null){
+      if(rpeMoy<=4)rpeAlert='⬆ Trop léger';
+      else if(rpeMoy<=7)rpeAlert='✅ Zone cible';
+      else if(rpeMoy<=9)rpeAlert='⚠ Charge haute';
+      else rpeAlert='🚨 Surcharge';
+    }
+    let reco='';
+    if(valides.length===0)reco='Contacter — aucune séance';
+    else if(valides.length>=12)reco='Prêt P3 ✅';
+    else if(valides.length>=7)reco='Suivi standard';
+    else if(valides.length>=4)reco='Rattrapage R2';
+    else reco='R1+R2 urgent';
+    if(rpeMoy&&rpeMoy>=8.5)reco+=' · Alléger';
+    if(rpeMoy&&rpeMoy<=4)reco+=' · Intensifier';
+    return{valides:valides.length,sv,assiduite,rpeMoy,rpeAlert,joursInactif,statut,couleur,reco};
+  }
+
+  function semCell(j,w){
+    const sv=(j.seances_validees||[]);
+    const val=sv.filter(s=>!s.missed&&s.weekIdx===w);
+    const man=sv.filter(s=>s.missed&&s.weekIdx===w);
+    if(val.length>=2)return`<td style="text-align:center;background:rgba(34,197,94,.15);color:var(--green);font-weight:700;font-size:12px">✓ ${val.length}</td>`;
+    if(val.length===1)return`<td style="text-align:center;background:rgba(245,158,11,.12);color:var(--yellow);font-weight:700;font-size:12px">⚡ 1</td>`;
+    if(man.length)return`<td style="text-align:center;background:rgba(200,27,27,.1);color:var(--red);font-size:12px">✗</td>`;
+    return`<td style="text-align:center;color:var(--dim);font-size:12px">—</td>`;
+  }
+
+  // Trier
+  joueurs.sort((a,b)=>calcSuivi(b).valides-calcSuivi(a).valides);
+
+  // Stats globales
+  const stats=joueurs.map(j=>({j,s:calcSuivi(j)}));
+  const enForme=stats.filter(x=>x.s.valides>=12).length;
+  const ok=stats.filter(x=>x.s.valides>=7&&x.s.valides<12).length;
+  const retard=stats.filter(x=>x.s.valides>0&&x.s.valides<7).length;
+  const absents=stats.filter(x=>x.s.valides===0).length;
+
+  let h=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
+    <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:var(--r);padding:12px;text-align:center">
+      <div style="font-family:var(--fnt-head);font-size:28px;font-weight:900;color:var(--green)">${enForme}</div>
+      <div style="font-size:11px;color:var(--gray)">🟢 En forme</div></div>
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:var(--r);padding:12px;text-align:center">
+      <div style="font-family:var(--fnt-head);font-size:28px;font-weight:900;color:var(--yellow)">${ok}</div>
+      <div style="font-size:11px;color:var(--gray)">🟡 OK</div></div>
+    <div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:var(--r);padding:12px;text-align:center">
+      <div style="font-family:var(--fnt-head);font-size:28px;font-weight:900;color:#f97316">${retard}</div>
+      <div style="font-size:11px;color:var(--gray)">🟠 Retard</div></div>
+    <div style="background:rgba(200,27,27,.08);border:1px solid rgba(200,27,27,.25);border-radius:var(--r);padding:12px;text-align:center">
+      <div style="font-family:var(--fnt-head);font-size:28px;font-weight:900;color:var(--red)">${absents}</div>
+      <div style="font-size:11px;color:var(--gray)">🔴 Absents</div></div>
+  </div>`;
+
+  // Inactifs alert
+  const inactifs=stats.filter(x=>x.s.joursInactif>=10&&x.s.valides>0);
+  if(inactifs.length){
+    h+=`<div style="background:rgba(245,158,11,.08);border:1.5px solid rgba(245,158,11,.35);border-radius:var(--rL);padding:12px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⚠️ Inactifs depuis +10 jours</div>
+      ${inactifs.map(x=>`<div style="font-size:13px;color:var(--light);padding:4px 0;border-bottom:1px solid var(--brd)">
+        ${x.j.prenom} ${x.j.nom||''} — ${x.s.joursInactif} jours sans séance · ${x.s.valides} séance${x.s.valides>1?'s':''} au total
+      </div>`).join('')}
+    </div>`;
+  }
+
+  // Table suivi
+  h+=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+  <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:800px">
+    <thead>
+      <tr style="background:var(--s2);font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--gray)">
+        <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--red)">Joueur</th>
+        <th style="padding:8px 6px;text-align:center;border-bottom:2px solid var(--brd)">VMA / Gr.</th>
+        <th style="padding:8px 6px;text-align:center;border-bottom:2px solid var(--brd)">Statut</th>
+        <th style="padding:8px 4px;text-align:center;border-bottom:2px solid rgba(21,101,192,.5);font-size:9px">S1<br>14/7</th>
+        <th style="padding:8px 4px;text-align:center;border-bottom:2px solid rgba(21,101,192,.5);font-size:9px">S2<br>21/7</th>
+        <th style="padding:8px 4px;text-align:center;border-bottom:2px solid rgba(21,101,192,.5);font-size:9px">S3<br>28/7</th>
+        <th style="padding:8px 4px;text-align:center;border-bottom:2px solid rgba(21,101,192,.5);font-size:9px">S4<br>4/8</th>
+        <th style="padding:8px 4px;text-align:center;border-bottom:2px solid rgba(21,101,192,.5);font-size:9px">S5<br>11/8</th>
+        <th style="padding:8px 6px;text-align:center;border-bottom:2px solid var(--brd)">Séances</th>
+        <th style="padding:8px 6px;text-align:center;border-bottom:2px solid var(--brd)">Assid.</th>
+        <th style="padding:8px 6px;text-align:center;border-bottom:2px solid var(--brd)">RPE</th>
+        <th style="padding:8px 6px;text-align:center;border-bottom:2px solid var(--brd)">Charge</th>
+        <th style="padding:8px 6px;text-align:center;border-bottom:2px solid var(--brd)">Badges</th>
+        <th style="padding:8px 10px;text-align:left;border-bottom:2px solid var(--green)">Recommandation</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${stats.map(({j,s},idx)=>{
+        const gr=getGroupe(j.vma);
+        const grColor=gr==='A+'?'var(--red)':gr==='A'?'var(--yellow)':gr==='B'?'#3B82F6':'var(--gray)';
+        const bg=idx%2===0?'var(--s2)':'var(--s3)';
+        const nbBadges=(j.badges||[]).length;
+        return`<tr style="background:${bg};cursor:pointer" onclick="coachManagePlayer('${j.code}')">
+          <td style="padding:10px;font-weight:700;color:var(--white);white-space:nowrap">
+            ${j.prenom} ${j.nom||''}<br>
+            <span style="font-size:10px;color:var(--gray);font-weight:400">${j.poste||'?'} · ${j.code}</span>
+          </td>
+          <td style="padding:6px;text-align:center">
+            <span style="font-weight:700;color:var(--white)">${j.vma||'?'}</span><br>
+            <span style="font-size:10px;font-weight:700;color:${grColor}">Gr.${gr}</span>
+          </td>
+          <td style="padding:6px;text-align:center;font-size:11px;font-weight:700;color:${s.couleur}">${s.statut}</td>
+          ${[0,1,2,3,4].map(w=>semCell(j,w)).join('')}
+          <td style="padding:6px;text-align:center;font-weight:900;font-size:15px;color:${s.valides>=10?'var(--green)':s.valides>=6?'var(--yellow)':'var(--red)'}">
+            ${s.valides}<span style="font-size:10px;color:var(--gray)">/10</span>
+          </td>
+          <td style="padding:6px;text-align:center;font-weight:700;color:${s.assiduite>=80?'var(--green)':s.assiduite>=50?'var(--yellow)':'var(--red)'}">${s.assiduite}%</td>
+          <td style="padding:6px;text-align:center;font-weight:700;color:${s.rpeMoy===null?'var(--gray)':s.rpeMoy>8.5?'var(--red)':s.rpeMoy<5?'#3B82F6':'var(--green)'}">
+            ${s.rpeMoy!==null?s.rpeMoy+'/10':'—'}
+          </td>
+          <td style="padding:6px;text-align:center;font-size:11px;color:var(--light)">${s.rpeAlert||'—'}</td>
+          <td style="padding:6px;text-align:center;font-weight:700;color:${nbBadges>=10?'var(--gold)':nbBadges>=5?'var(--yellow)':'var(--gray)'}">
+            ${nbBadges}<span style="font-size:10px;color:var(--gray)">/15</span>
+          </td>
+          <td style="padding:10px;font-size:11px;color:var(--light);max-width:160px">${s.reco}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table></div>`;
+
+  h+=`<div style="font-size:11px;color:var(--dim);text-align:right;margin-top:10px">Cliquer sur un joueur pour accéder à sa fiche · Mis à jour en temps réel</div>`;
+  g('coach-content').innerHTML=h;
+}
 // ══════════════════════════════════════════════════
 // COACH — SEMAINE VIEW
 // ══════════════════════════════════════════════════
